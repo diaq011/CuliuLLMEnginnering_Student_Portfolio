@@ -1,4 +1,4 @@
-import json
+﻿import json
 import socket
 from urllib import error, request
 
