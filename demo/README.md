@@ -1,71 +1,15 @@
-﻿# Demo: 任务智能拆解与日程规划（Python Only）
+﻿# Demo: 任务智能拆解与日程规划（性能优化版）
 
-本 Demo 已按模块化框架重建，并实现以下功能：
+本 Demo 基于 `Streamlit + Ollama`，已完成：
 
-1. 首页有“开始制定计划”按钮。
-2. 可输入任务（名称、内容、可选预计时长、截止日期）。
-3. 可输入空闲时间段（周几、开始时间、结束时间）。
-4. 连接本地 Ollama，输出按天拆解、可执行的计划（受空闲时段约束）。
+1. 两阶段排程：先本地规则排骨架，再用 LLM 轻量润色。
+2. 快速兜底：LLM 超时自动回退本地计划，保证页面可用。
+3. 结果可观测：展示模式、模型、是否兜底、总耗时。
+4. UI 重构：顶部步骤进度 + 左侧输入卡片 + 右侧时间线结果。
 
-## 目录结构（按此搭建）
+## 启动方式
 
-```text
-demo/
-├─ README.md
-├─ requirements.txt
-├─ app.py
-├─ core/
-│  ├─ __init__.py
-│  ├─ config.py
-│  └─ schemas.py
-├─ services/
-│  ├─ __init__.py
-│  ├─ ollama_client.py
-│  └─ planner.py
-└─ ui/
-   ├─ __init__.py
-   └─ components.py
-```
-
-## 模块说明
-
-- `app.py`: Streamlit 入口，串联整体流程。
-- `core/config.py`: 模型地址、模型名、周几配置等。
-- `core/schemas.py`: 输入结构、基础校验、计划结果规范化。
-- `services/ollama_client.py`: 本地 Ollama 健康检查与请求封装。
-- `services/planner.py`: Prompt 构造与按天计划生成。
-- `ui/components.py`: 页面组件与结果渲染。
-
-## 输入格式
-
-### tasks
-
-```json
-[
-  {
-    "name": "高数作业",
-    "detail": "第3章习题 1-20",
-    "estimated_minutes": 120,
-    "deadline": "2026-03-31"
-  }
-]
-```
-
-### availability
-
-```json
-[
-  {
-    "weekday": "Monday",
-    "start": "19:00",
-    "end": "21:00"
-  }
-]
-```
-
-## 启动方式（必须用 streamlit）
-
-1. 启动 Ollama
+1. 启动 Ollama 并拉取模型
 
 ```powershell
 ollama serve
@@ -80,44 +24,67 @@ pip install -r demo\requirements.txt
 streamlit run demo\app.py
 ```
 
-3. 打开页面
-
-- `http://localhost:8501`
-
-> 注意：不要用 `python demo\app.py` 启动，否则会出现 `missing ScriptRunContext` 提示。
-
-## 可选环境变量
+## 推荐环境变量
 
 ```powershell
 $env:OLLAMA_URL="http://127.0.0.1:11434"
+$env:OLLAMA_MODEL_DEFAULT="qwen3:4b"
+$env:OLLAMA_MODEL_QUALITY="qwen3:4b"
 $env:OLLAMA_MODEL="qwen3:4b"
 $env:OLLAMA_TIMEOUT_SECONDS="120"
+$env:OLLAMA_FAST_TIMEOUT_SECONDS="12"
 $env:OLLAMA_RETRY_COUNT="1"
-$env:OLLAMA_NUM_PREDICT="360"
-$env:OLLAMA_NUM_CTX="4096"
+$env:OLLAMA_NUM_PREDICT="200"
+$env:OLLAMA_NUM_CTX="2048"
 $env:OLLAMA_NUM_THREAD="8"
 $env:PLAN_MAX_DAYS="14"
+$env:UI_THEME="clean_productive_v1"
 streamlit run demo\app.py
 ```
 
-## 速度优化建议
+## 使用说明
 
-1. 优先使用更小模型测试
+1. 点击顶部 `开始制定计划`。
+2. 填写任务清单与空闲时段。
+3. 选择推理模式：
+   - `极速模式（默认）`：更快返回。
+   - `质量模式（更稳）`：使用更谨慎的润色策略。
+4. 点击 `生成按天计划`。
+5. 如首次较慢，可先点 `模型预热`。
 
-```powershell
-ollama pull qwen2.5:3b
-$env:OLLAMA_MODEL="qwen2.5:3b"
+## 输出结构
+
+计划结果保持兼容：
+
+```json
+{
+  "summary": "...",
+  "risk": "...",
+  "need_more_info": false,
+  "questions": [],
+  "daily_plan": [
+    {
+      "date": "YYYY-MM-DD",
+      "total_available_minutes": 120,
+      "planned_minutes": 100,
+      "items": [
+        {
+          "task_name": "...",
+          "step": "...",
+          "minutes": 50,
+          "scheduled_slot": "19:00-19:50"
+        }
+      ]
+    }
+  ],
+  "notes": ["..."],
+  "meta": {
+    "mode": "llm_refined | local_fallback",
+    "used_fallback": false,
+    "model": "qwen3:4b",
+    "llm_elapsed_ms": 800,
+    "elapsed_ms_total": 980,
+    "error": null
+  }
+}
 ```
-
-2. 控制生成长度（最有效）
-
-- 将 `OLLAMA_NUM_PREDICT` 降到 `220-360`
-- 将 `PLAN_MAX_DAYS` 控制在 `7-14`
-
-3. 充分利用 CPU 线程
-
-- Windows 下可设置：`$env:OLLAMA_NUM_THREAD="8"`（按你机器核心数调整）
-
-4. 避免冷启动
-
-- 先执行一次 `ollama run qwen3:4b "你好"`，再打开页面生成计划
