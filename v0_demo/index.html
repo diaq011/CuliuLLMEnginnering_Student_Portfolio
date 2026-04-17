@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>J人模拟器</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="page page-active" data-page="home">
+      <header class="page-header">
+        <h1>J人模拟器</h1>
+      </header>
+      <div class="card">
+        <h2>计时器</h2>
+        <div id="timerDisplay" class="timer-display">00:00:00</div>
+        <div class="timer-actions">
+          <button id="timerToggleBtn" class="btn primary" type="button">开始</button>
+          <button id="timerResetBtn" class="btn" type="button">重置</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>常用入口（占位）</h2>
+        <div class="icon-grid">
+          <div class="icon-item"><span>📅</span><p>日历</p></div>
+          <div class="icon-item"><span>⏱️</span><p>专注</p></div>
+          <div class="icon-item"><span>📝</span><p>笔记</p></div>
+          <div class="icon-item"><span>📊</span><p>统计</p></div>
+          <div class="icon-item"><span>🎯</span><p>目标</p></div>
+          <div class="icon-item"><span>🧩</span><p>更多</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" data-page="timeline">
+      <header class="page-header">
+        <h1>时间轴</h1>
+      </header>
+      <div class="card">
+        <button id="generateBtn" class="btn generate-btn" type="button">
+          <span class="btn-text">生成今日计划</span>
+          <span id="generateSpinner" class="spinner" aria-hidden="true"></span>
+        </button>
+        <p id="timelineHint" class="hint">双击时间块可标记完成并从时间轴移除。</p>
+      </div>
+      <div class="card timeline-card">
+        <div id="timelineHeader" class="timeline-header"></div>
+        <div id="timelineCanvas" class="timeline-canvas"></div>
+      </div>
+    </section>
+
+    <section class="page" data-page="plan">
+      <header class="page-header">
+        <h1>计划列表</h1>
+      </header>
+      <div class="card">
+        <form id="taskForm" class="form-grid">
+          <label>
+            任务名称
+            <input id="titleInput" name="title" type="text" placeholder="例如：数学卷3张" required>
+          </label>
+          <label>
+            截止日期
+            <input id="deadlineInput" name="deadline" type="date" required>
+          </label>
+          <label>
+            预估时长（分钟，可选）
+            <input id="estimateInput" name="estimate" type="number" min="1" placeholder="例如：90">
+          </label>
+          <button type="submit" class="btn primary">添加任务</button>
+        </form>
+      </div>
+      <div class="card">
+        <ul id="planList" class="list"></ul>
+      </div>
+    </section>
+
+    <section class="page" data-page="settings">
+      <header class="page-header">
+        <h1>设置</h1>
+      </header>
+      <div class="card">
+        <p class="hint">设置页暂未开放，后续再实现。</p>
+      </div>
+    </section>
+
+    <div id="feedbackBox" class="feedback" aria-live="polite"></div>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item nav-active" data-nav="home" type="button">
+      <span>🏠</span><em>主页</em>
+    </button>
+    <button class="nav-item" data-nav="timeline" type="button">
+      <span>🕒</span><em>时间轴</em>
+    </button>
+    <button class="nav-item" data-nav="plan" type="button">
+      <span>📋</span><em>计划列表</em>
+    </button>
+    <button class="nav-item" data-nav="settings" type="button">
+      <span>⚙️</span><em>设置</em>
+    </button>
+  </nav>
+
+  <script src="./app.js"></script>
+</body>
+</html>
