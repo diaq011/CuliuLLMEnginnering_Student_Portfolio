@@ -19,6 +19,8 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
 OLLAMA_TIMEOUT_SEC = int(os.getenv("OLLAMA_TIMEOUT_SEC", "30"))
+APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
+APP_PORT = int(os.getenv("APP_PORT", "5000"))
 
 store: dict[str, Any] = {
     "tasks": [],
@@ -302,4 +304,4 @@ def ollama_chat(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host=APP_HOST, port=APP_PORT, debug=True)
