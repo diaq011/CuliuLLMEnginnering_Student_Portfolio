@@ -21,13 +21,12 @@ body {
   margin: 0;
   color: var(--text);
   font-family: "Courier New", "Lucida Console", "Microsoft YaHei", monospace;
-  background:
-    linear-gradient(to bottom, var(--bg-sky) 0 58%, var(--bg-grass) 58% 100%);
+  background: #111;
   image-rendering: pixelated;
 }
 
 .app-shell {
-  width: min(100vw, 460px);
+  width: 100vw;
   min-height: 100dvh;
   margin: 0 auto;
   padding: 12px 12px 96px;
@@ -36,6 +35,12 @@ body {
 .page {
   display: none;
   gap: 10px;
+  position: relative;
+  padding: 10px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.16)),
+    url("./assets/bg-pixel-field.png") center / cover no-repeat;
+  border-radius: 8px;
 }
 
 .page-active {
@@ -50,10 +55,19 @@ body {
   text-shadow: 2px 2px 0 #1d1b21;
 }
 
+.home-title-image {
+  display: block;
+  width: min(100%, 320px);
+  height: auto;
+  margin: 2px auto 2px;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 #1d1b21);
+}
+
 .card {
   background:
     linear-gradient(45deg, #0000 25%, #fff5 25% 50%, #0000 50% 75%, #fff5 75%),
-    var(--panel);
+    rgba(255, 246, 207, 0.72);
   background-size: 8px 8px, auto;
   border: 3px solid var(--line);
   border-radius: 0;
@@ -316,11 +330,18 @@ select {
   min-height: 44px;
   border: 3px solid var(--line);
   border-radius: 0;
-  background: #fffde8;
+  background: rgba(255, 253, 232, 0.82);
   color: #4d3d16;
   padding: 10px;
   z-index: 20;
   box-shadow: 2px 2px 0 #00000055;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
+.feedback.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .bottom-nav {
@@ -328,10 +349,10 @@ select {
   left: 50%;
   transform: translateX(-50%);
   bottom: 0;
-  width: min(100vw, 460px);
+  width: 100vw;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  background: #ffe38a;
+  background: rgba(255, 227, 138, 0.84);
   border-top: 3px solid var(--line);
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
   z-index: 30;

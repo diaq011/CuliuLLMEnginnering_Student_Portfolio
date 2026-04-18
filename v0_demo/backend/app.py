@@ -64,6 +64,11 @@ def script():
     return send_from_directory(FRONTEND_DIR, "app.js")
 
 
+@app.route("/assets/<path:filename>", methods=["GET"])
+def assets(filename: str):
+    return send_from_directory(FRONTEND_DIR / "assets", filename)
+
+
 @app.route("/api/health", methods=["GET"])
 def health():
     ok, msg = ollama_model_ready()

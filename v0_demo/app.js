@@ -11,6 +11,7 @@ const state = {
   timerSeconds: 0,
   timerRunning: false,
   timerHandle: null,
+  feedbackTimer: null,
 };
 
 const ui = {
@@ -276,10 +277,20 @@ async function markTaskDone(taskId, done) {
 }
 
 function setFeedback(message, isError = false) {
+  if (state.feedbackTimer) {
+    clearTimeout(state.feedbackTimer);
+    state.feedbackTimer = null;
+  }
+
   ui.feedbackBox.textContent = message;
+  ui.feedbackBox.classList.remove("hidden");
   ui.feedbackBox.style.borderColor = isError ? "#f2b8b5" : "#c7d6e9";
   ui.feedbackBox.style.background = isError ? "#fff4f4" : "#f6faff";
   ui.feedbackBox.style.color = isError ? "var(--danger)" : "#26435f";
+
+  state.feedbackTimer = setTimeout(() => {
+    ui.feedbackBox.classList.add("hidden");
+  }, 2000);
 }
 
 async function api(path, options = {}) {
