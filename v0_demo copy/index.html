@@ -10,7 +10,12 @@
   <main class="app-shell">
     <section class="page page-active" data-page="home">
       <header class="page-header">
-        <img id="homeTitleImage" class="home-title-image" src="./assets/title-j-simulator.png" alt="J人模拟器">
+        <img
+          id="homeTitleImage"
+          class="home-title-image"
+          src="./assets/title-j-simulator.png"
+          alt="J人模拟器"
+        >
       </header>
       <div class="card">
         <h2>计时器</h2>
@@ -37,23 +42,12 @@
       <header class="page-header">
         <h1>时间轴</h1>
       </header>
-      <div class="card date-switch-card">
-        <div class="date-nav-row">
-          <button id="prevDayBtn" class="btn small" type="button">‹ 前一天</button>
-          <div id="selectedDateLabel" class="selected-date-label">--</div>
-          <button id="nextDayBtn" class="btn small" type="button">后一天 ›</button>
-        </div>
-        <div id="weekStrip" class="week-strip"></div>
-      </div>
       <div class="card">
-        <div class="timeline-actions-row">
-          <button id="generateBtn" class="btn generate-btn" type="button">
-            <span class="btn-text">生成计划（全部任务）</span>
-            <span id="generateSpinner" class="spinner" aria-hidden="true"></span>
-          </button>
-          <button id="planInfoBtn" class="btn info-btn" type="button" title="查看计划详情">🛈</button>
-        </div>
-        <p id="timelineHint" class="hint">双击任务块可标记完成并从时间轴移除。</p>
+        <button id="generateBtn" class="btn generate-btn" type="button">
+          <span class="btn-text">生成今日计划</span>
+          <span id="generateSpinner" class="spinner" aria-hidden="true"></span>
+        </button>
+        <p id="timelineHint" class="hint">双击时间块可标记完成并从时间轴移除。</p>
       </div>
       <div class="card timeline-card">
         <div id="timelineHeader" class="timeline-header"></div>
@@ -92,46 +86,28 @@
         <h1>设置</h1>
       </header>
       <div class="card">
-        <h2>每周空闲时间段</h2>
-        <p class="hint">每个时段都支持：下拉选择或手动输入。输入会自动规范为 HH:MM。</p>
-        <form id="availabilityForm" class="form-grid">
-          <div class="availability-actions">
-            <button id="copyWeekdaysBtn" class="btn" type="button">复制周一到周五</button>
-            <button id="copyAllDaysBtn" class="btn" type="button">复制到全周</button>
-          </div>
-          <div id="availabilityEditor" class="availability-editor"></div>
-          <button id="saveAvailabilityBtn" type="submit" class="btn primary">保存空闲时段</button>
-        </form>
+        <p class="hint">设置页暂未开放，后续再实现。</p>
       </div>
     </section>
 
     <div id="feedbackBox" class="feedback" aria-live="polite"></div>
   </main>
 
-  <div id="planInfoModal" class="modal hidden">
-    <div class="modal-panel">
-      <div class="modal-head">
-        <h3>计划详情</h3>
-        <button id="closePlanInfoBtn" class="btn small" type="button">关闭</button>
-      </div>
-      <div class="modal-body">
-        <h4>本次计划的理由与风险</h4>
-        <p id="planReasonText">暂无</p>
-        <ul id="planRiskList" class="list compact"></ul>
-        <h4>任务时长估计原因</h4>
-        <ul id="planEstimateList" class="list compact"></ul>
-      </div>
-    </div>
-  </div>
-
   <nav class="bottom-nav">
-    <button class="nav-item nav-active" data-nav="home" type="button"><span>🏠</span><em>主页</em></button>
-    <button class="nav-item" data-nav="timeline" type="button"><span>🕒</span><em>时间轴</em></button>
-    <button class="nav-item" data-nav="plan" type="button"><span>📋</span><em>计划列表</em></button>
-    <button class="nav-item" data-nav="settings" type="button"><span>⚙️</span><em>设置</em></button>
+    <button class="nav-item nav-active" data-nav="home" type="button">
+      <span>🏠</span><em>主页</em>
+    </button>
+    <button class="nav-item" data-nav="timeline" type="button">
+      <span>🕒</span><em>时间轴</em>
+    </button>
+    <button class="nav-item" data-nav="plan" type="button">
+      <span>📋</span><em>计划列表</em>
+    </button>
+    <button class="nav-item" data-nav="settings" type="button">
+      <span>⚙️</span><em>设置</em>
+    </button>
   </nav>
 
-  <datalist id="timeOptions"></datalist>
   <script src="./app.js"></script>
 </body>
 </html>
