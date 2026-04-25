@@ -1,0 +1,419 @@
+{
+  "tasks": [
+    {
+      "id": "c69133f3-4712-4100-81d0-6f565b64942e",
+      "title": "数学卷3张",
+      "deadline": "2026-04-27",
+      "estimatedMinutes": null,
+      "status": "todo"
+    },
+    {
+      "id": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+      "title": "英语200词作文",
+      "deadline": "2026-04-30",
+      "estimatedMinutes": null,
+      "status": "todo"
+    }
+  ],
+  "todayPlan": {
+    "date": "2026-04-25",
+    "taskIds": [],
+    "totalEstimatedMinutes": 0,
+    "scheduledBlocks": [],
+    "weekday": "sat",
+    "note": "",
+    "details": {
+      "rationale": "Since both tasks have estimated minutes of 0, it's possible they can be scheduled without additional time constraints. However, no evidence was provided for their durations.",
+      "risks": [
+        "Insufficient evidence to estimate the durations of the tasks.",
+        "Risk of not meeting the deadline if tasks are split across days.",
+        "RAG 样本不足，估时回退比例较高。"
+      ],
+      "taskEstimates": [
+        {
+          "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+          "title": "数学卷3张",
+          "estimatedMinutes": 60,
+          "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+          "evidence_ids": []
+        },
+        {
+          "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+          "title": "英语200词作文",
+          "estimatedMinutes": 60,
+          "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+          "evidence_ids": []
+        }
+      ],
+      "ragTopK": 5,
+      "ragExamples": [
+        {
+          "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+          "title": "数学卷3张",
+          "examples": []
+        },
+        {
+          "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+          "title": "英语200词作文",
+          "examples": []
+        }
+      ],
+      "planningWindow": {
+        "start": "2026-04-25",
+        "end": "2026-04-30"
+      }
+    }
+  },
+  "plansByDate": {
+    "2026-04-25": {
+      "date": "2026-04-25",
+      "taskIds": [],
+      "totalEstimatedMinutes": 0,
+      "scheduledBlocks": [],
+      "weekday": "sat",
+      "note": "",
+      "details": {
+        "rationale": "Since both tasks have estimated minutes of 0, it's possible they can be scheduled without additional time constraints. However, no evidence was provided for their durations.",
+        "risks": [
+          "Insufficient evidence to estimate the durations of the tasks.",
+          "Risk of not meeting the deadline if tasks are split across days.",
+          "RAG 样本不足，估时回退比例较高。"
+        ],
+        "taskEstimates": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          }
+        ],
+        "ragTopK": 5,
+        "ragExamples": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "examples": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "examples": []
+          }
+        ],
+        "planningWindow": {
+          "start": "2026-04-25",
+          "end": "2026-04-30"
+        }
+      }
+    },
+    "2026-04-26": {
+      "date": "2026-04-26",
+      "taskIds": [],
+      "totalEstimatedMinutes": 0,
+      "scheduledBlocks": [],
+      "weekday": "sun",
+      "note": "",
+      "details": {
+        "rationale": "Since both tasks have estimated minutes of 0, it's possible they can be scheduled without additional time constraints. However, no evidence was provided for their durations.",
+        "risks": [
+          "Insufficient evidence to estimate the durations of the tasks.",
+          "Risk of not meeting the deadline if tasks are split across days.",
+          "RAG 样本不足，估时回退比例较高。"
+        ],
+        "taskEstimates": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          }
+        ],
+        "ragTopK": 5,
+        "ragExamples": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "examples": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "examples": []
+          }
+        ],
+        "planningWindow": {
+          "start": "2026-04-25",
+          "end": "2026-04-30"
+        }
+      }
+    },
+    "2026-04-27": {
+      "date": "2026-04-27",
+      "taskIds": [
+        "c69133f3-4712-4100-81d0-6f565b64942e"
+      ],
+      "totalEstimatedMinutes": 60,
+      "scheduledBlocks": [
+        {
+          "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+          "startMinute": 1080,
+          "endMinute": 1140,
+          "title": "数学卷3张",
+          "deadline": "2026-04-27"
+        }
+      ],
+      "weekday": "mon",
+      "note": "",
+      "details": {
+        "rationale": "Since both tasks have estimated minutes of 0, it's possible they can be scheduled without additional time constraints. However, no evidence was provided for their durations.",
+        "risks": [
+          "Insufficient evidence to estimate the durations of the tasks.",
+          "Risk of not meeting the deadline if tasks are split across days.",
+          "RAG 样本不足，估时回退比例较高。"
+        ],
+        "taskEstimates": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          }
+        ],
+        "ragTopK": 5,
+        "ragExamples": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "examples": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "examples": []
+          }
+        ],
+        "planningWindow": {
+          "start": "2026-04-25",
+          "end": "2026-04-30"
+        }
+      }
+    },
+    "2026-04-28": {
+      "date": "2026-04-28",
+      "taskIds": [
+        "31339f87-8a51-419d-b7b8-c8a7e521d663"
+      ],
+      "totalEstimatedMinutes": 60,
+      "scheduledBlocks": [
+        {
+          "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+          "startMinute": 1080,
+          "endMinute": 1140,
+          "title": "英语200词作文",
+          "deadline": "2026-04-30"
+        }
+      ],
+      "weekday": "tue",
+      "note": "",
+      "details": {
+        "rationale": "Since both tasks have estimated minutes of 0, it's possible they can be scheduled without additional time constraints. However, no evidence was provided for their durations.",
+        "risks": [
+          "Insufficient evidence to estimate the durations of the tasks.",
+          "Risk of not meeting the deadline if tasks are split across days.",
+          "RAG 样本不足，估时回退比例较高。"
+        ],
+        "taskEstimates": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          }
+        ],
+        "ragTopK": 5,
+        "ragExamples": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "examples": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "examples": []
+          }
+        ],
+        "planningWindow": {
+          "start": "2026-04-25",
+          "end": "2026-04-30"
+        }
+      }
+    },
+    "2026-04-29": {
+      "date": "2026-04-29",
+      "taskIds": [],
+      "totalEstimatedMinutes": 0,
+      "scheduledBlocks": [],
+      "weekday": "wed",
+      "note": "",
+      "details": {
+        "rationale": "Since both tasks have estimated minutes of 0, it's possible they can be scheduled without additional time constraints. However, no evidence was provided for their durations.",
+        "risks": [
+          "Insufficient evidence to estimate the durations of the tasks.",
+          "Risk of not meeting the deadline if tasks are split across days.",
+          "RAG 样本不足，估时回退比例较高。"
+        ],
+        "taskEstimates": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          }
+        ],
+        "ragTopK": 5,
+        "ragExamples": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "examples": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "examples": []
+          }
+        ],
+        "planningWindow": {
+          "start": "2026-04-25",
+          "end": "2026-04-30"
+        }
+      }
+    },
+    "2026-04-30": {
+      "date": "2026-04-30",
+      "taskIds": [],
+      "totalEstimatedMinutes": 0,
+      "scheduledBlocks": [],
+      "weekday": "thu",
+      "note": "",
+      "details": {
+        "rationale": "Since both tasks have estimated minutes of 0, it's possible they can be scheduled without additional time constraints. However, no evidence was provided for their durations.",
+        "risks": [
+          "Insufficient evidence to estimate the durations of the tasks.",
+          "Risk of not meeting the deadline if tasks are split across days.",
+          "RAG 样本不足，估时回退比例较高。"
+        ],
+        "taskEstimates": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "estimatedMinutes": 60,
+            "reason": "Based on the provided data, but no evidence for the estimate.；证据无效已回退",
+            "evidence_ids": []
+          }
+        ],
+        "ragTopK": 5,
+        "ragExamples": [
+          {
+            "taskId": "c69133f3-4712-4100-81d0-6f565b64942e",
+            "title": "数学卷3张",
+            "examples": []
+          },
+          {
+            "taskId": "31339f87-8a51-419d-b7b8-c8a7e521d663",
+            "title": "英语200词作文",
+            "examples": []
+          }
+        ],
+        "planningWindow": {
+          "start": "2026-04-25",
+          "end": "2026-04-30"
+        }
+      }
+    }
+  },
+  "checkins": [],
+  "lastPlanner": "ollama:qwen3:0.6b+rag_top_k=5",
+  "weeklyAvailability": {
+    "mon": [
+      {
+        "start": "18:00",
+        "end": "19:00"
+      }
+    ],
+    "tue": [
+      {
+        "start": "18:00",
+        "end": "19:00"
+      }
+    ],
+    "wed": [
+      {
+        "start": "18:00",
+        "end": "19:00"
+      }
+    ],
+    "thu": [
+      {
+        "start": "18:00",
+        "end": "19:00"
+      }
+    ],
+    "fri": [
+      {
+        "start": "18:00",
+        "end": "19:00"
+      }
+    ],
+    "sat": [],
+    "sun": []
+  }
+}

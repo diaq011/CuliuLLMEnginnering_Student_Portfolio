@@ -4,6 +4,8 @@ import json
 import math
 import os
 import re
+import secrets
+import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Lock
@@ -18,12 +20,12 @@ app = Flask(__name__)
 store_lock = Lock()
 FRONTEND_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(__file__).resolve().parent / "data"
-AVAILABILITY_FILE = DATA_DIR / "weekly_availability.json"
-RAG_SAMPLES_FILE = DATA_DIR / "rag_samples.jsonl"
+USERS_FILE = DATA_DIR / "users.json"
+USER_DATA_DIR = DATA_DIR / "users"
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
-OLLAMA_TIMEOUT_SEC = int(os.getenv("OLLAMA_TIMEOUT_SEC", "30"))
+OLLAMA_TIMEOUT_SEC = int(os.getenv("OLLAMA_TIMEOUT_SEC", "90"))
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT = int(os.getenv("APP_PORT", "5000"))
 
@@ -46,14 +48,8 @@ WEEK_LABELS = {
     "sun": "周日",
 }
 
-store: dict[str, Any] = {
-    "tasks": [],
-    "todayPlan": None,
-    "plansByDate": {},
-    "checkins": [],
-    "lastPlanner": "none",
-    "weeklyAvailability": {key: [] for key in WEEK_KEYS},
-}
+users_db: dict[str, dict[str, str]] = {}
+sessions: dict[str, str] = {}
 
 
 def today_str() -> str:
@@ -142,28 +138,85 @@ def normalize_and_validate_availability(payload: dict[str, Any]) -> dict[str, li
     return normalized
 
 
-def save_weekly_availability(data: dict[str, list[dict[str, str]]]) -> None:
+def default_user_state() -> dict[str, Any]:
+    return {
+        "tasks": [],
+        "todayPlan": None,
+        "plansByDate": {},
+        "checkins": [],
+        "lastPlanner": "none",
+        "weeklyAvailability": {key: [] for key in WEEK_KEYS},
+    }
+
+
+def safe_username(username: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", username)
+
+
+def user_state_file(username: str) -> Path:
+    return USER_DATA_DIR / f"{safe_username(username)}_state.json"
+
+
+def user_rag_file(username: str) -> Path:
+    return USER_DATA_DIR / f"{safe_username(username)}_rag_samples.jsonl"
+
+
+def save_users() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    AVAILABILITY_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    USERS_FILE.write_text(json.dumps(users_db, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def load_weekly_availability() -> dict[str, list[dict[str, str]]]:
-    if not AVAILABILITY_FILE.exists():
-        return {key: [] for key in WEEK_KEYS}
+def load_users() -> None:
+    global users_db
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if not USERS_FILE.exists():
+        users_db = {}
+        return
     try:
-        raw = json.loads(AVAILABILITY_FILE.read_text(encoding="utf-8"))
-        if not isinstance(raw, dict):
-            return {key: [] for key in WEEK_KEYS}
-        return normalize_and_validate_availability(raw)
+        raw = json.loads(USERS_FILE.read_text(encoding="utf-8"))
+        users_db = raw if isinstance(raw, dict) else {}
     except Exception:
-        return {key: [] for key in WEEK_KEYS}
+        users_db = {}
 
 
-def load_rag_samples() -> list[dict[str, Any]]:
-    if not RAG_SAMPLES_FILE.exists():
+def hash_password(password: str, salt: str) -> str:
+    return hashlib.sha256(f"{salt}:{password}".encode("utf-8")).hexdigest()
+
+
+def load_user_state(username: str) -> dict[str, Any]:
+    path = user_state_file(username)
+    if not path.exists():
+        return default_user_state()
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return default_user_state()
+        state = default_user_state()
+        state.update(raw)
+        state["weeklyAvailability"] = normalize_and_validate_availability(state.get("weeklyAvailability", {}))
+        if not isinstance(state.get("plansByDate"), dict):
+            state["plansByDate"] = {}
+        if not isinstance(state.get("tasks"), list):
+            state["tasks"] = []
+        if not isinstance(state.get("checkins"), list):
+            state["checkins"] = []
+        return state
+    except Exception:
+        return default_user_state()
+
+
+def save_user_state(username: str, state: dict[str, Any]) -> None:
+    USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    user_state_file(username).write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def load_rag_samples(username: str) -> list[dict[str, Any]]:
+    path = user_rag_file(username)
+    if not path.exists():
         return []
     samples = []
-    for line in RAG_SAMPLES_FILE.read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         try:
@@ -175,10 +228,22 @@ def load_rag_samples() -> list[dict[str, Any]]:
     return samples
 
 
-def append_rag_sample(sample: dict[str, Any]) -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with RAG_SAMPLES_FILE.open("a", encoding="utf-8") as fp:
+def append_rag_sample(username: str, sample: dict[str, Any]) -> None:
+    USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with user_rag_file(username).open("a", encoding="utf-8") as fp:
         fp.write(json.dumps(sample, ensure_ascii=False) + "\n")
+
+
+def get_current_username() -> str | None:
+    auth = request.headers.get("Authorization", "").strip()
+    token = ""
+    if auth.lower().startswith("bearer "):
+        token = auth[7:].strip()
+    if not token:
+        token = request.headers.get("X-Auth-Token", "").strip()
+    if not token:
+        return None
+    return sessions.get(token)
 
 
 def build_rag_sample_from_checkin(task: dict[str, Any], checkin: dict[str, Any]) -> dict[str, Any] | None:
@@ -504,7 +569,7 @@ def schedule_tasks_until_deadline(
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Auth-Token"
     response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
     return response
 
@@ -553,52 +618,128 @@ def health():
     )
 
 
+@app.route("/api/auth/register", methods=["POST"])
+def auth_register():
+    payload = request.get_json(silent=True) or {}
+    username = str(payload.get("username") or "").strip()
+    password = str(payload.get("password") or "")
+    if not re.match(r"^[a-zA-Z0-9_-]{3,32}$", username):
+        return jsonify({"message": "username must be 3-32 chars: letters/numbers/_/-"}), 400
+    if len(password) < 6:
+        return jsonify({"message": "password must be at least 6 chars"}), 400
+
+    with store_lock:
+        if username in users_db:
+            return jsonify({"message": "username already exists"}), 409
+        salt = secrets.token_hex(8)
+        users_db[username] = {
+            "salt": salt,
+            "password_hash": hash_password(password, salt),
+            "created_at": iso_now(),
+        }
+        save_users()
+        save_user_state(username, default_user_state())
+        token = secrets.token_urlsafe(32)
+        sessions[token] = username
+    return jsonify({"ok": True, "user": {"username": username}, "token": token})
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    payload = request.get_json(silent=True) or {}
+    username = str(payload.get("username") or "").strip()
+    password = str(payload.get("password") or "")
+    with store_lock:
+        user = users_db.get(username)
+        if not user:
+            return jsonify({"message": "invalid username or password"}), 401
+        expected = hash_password(password, user.get("salt", ""))
+        if expected != user.get("password_hash"):
+            return jsonify({"message": "invalid username or password"}), 401
+        token = secrets.token_urlsafe(32)
+        sessions[token] = username
+    return jsonify({"ok": True, "user": {"username": username}, "token": token})
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def auth_logout():
+    auth = request.headers.get("Authorization", "").strip()
+    token = auth[7:].strip() if auth.lower().startswith("bearer ") else request.headers.get("X-Auth-Token", "").strip()
+    with store_lock:
+        if token and token in sessions:
+            sessions.pop(token, None)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/auth/me", methods=["GET"])
+def auth_me():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
+    return jsonify({"ok": True, "user": {"username": username}})
+
+
 @app.route("/api/state", methods=["GET"])
 def get_state():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
     with store_lock:
-        return jsonify(
-            {
-                "tasks": store["tasks"],
-                "todayPlan": store["todayPlan"],
-                "checkins": store["checkins"],
-                "planner": store["lastPlanner"],
-                "weeklyAvailability": store["weeklyAvailability"],
-            }
-        )
+        state = load_user_state(username)
+    return jsonify(
+        {
+            "tasks": state["tasks"],
+            "todayPlan": state["todayPlan"],
+            "checkins": state["checkins"],
+            "planner": state["lastPlanner"],
+            "weeklyAvailability": state["weeklyAvailability"],
+            "user": {"username": username},
+        }
+    )
 
 
 @app.route("/api/state/reset", methods=["POST"])
 def reset_state():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
     with store_lock:
-        store["tasks"] = []
-        store["todayPlan"] = None
-        store["plansByDate"] = {}
-        store["checkins"] = []
-        store["lastPlanner"] = "none"
+        save_user_state(username, default_user_state())
     return jsonify({"ok": True})
 
 
 @app.route("/api/settings/availability", methods=["GET"])
 def get_availability():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
     with store_lock:
-        return jsonify({"weeklyAvailability": store["weeklyAvailability"]})
+        state = load_user_state(username)
+    return jsonify({"weeklyAvailability": state["weeklyAvailability"]})
 
 
 @app.route("/api/settings/availability", methods=["POST"])
 def save_availability():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
     payload = request.get_json(silent=True) or {}
     try:
         normalized = normalize_and_validate_availability(payload)
     except ValueError as exc:
         return jsonify({"message": str(exc)}), 400
     with store_lock:
-        store["weeklyAvailability"] = normalized
-    save_weekly_availability(normalized)
+        state = load_user_state(username)
+        state["weeklyAvailability"] = normalized
+        save_user_state(username, state)
     return jsonify({"ok": True, "weeklyAvailability": normalized})
 
 
 @app.route("/api/tasks", methods=["POST"])
 def create_task():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
     payload = request.get_json(silent=True) or {}
     title = str(payload.get("title") or "").strip()
     deadline = str(payload.get("deadline") or "").strip()
@@ -626,12 +767,17 @@ def create_task():
         "status": "todo",
     }
     with store_lock:
-        store["tasks"].append(task)
+        state = load_user_state(username)
+        state["tasks"].append(task)
+        save_user_state(username, state)
     return jsonify(task), 201
 
 
 @app.route("/api/plans/generate", methods=["POST"])
 def generate_plan_for_date():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
     req_payload = request.get_json(silent=True) or {}
     target_date = str(req_payload.get("date") or today_str()).strip()
     try:
@@ -640,11 +786,12 @@ def generate_plan_for_date():
         return jsonify({"message": "date must be YYYY-MM-DD"}), 400
 
     with store_lock:
-        tasks = [task for task in store["tasks"] if task["status"] != "done"]
-        availability = store["weeklyAvailability"]
+        state = load_user_state(username)
+        tasks = [task for task in state["tasks"] if task["status"] != "done"]
+        availability = state["weeklyAvailability"]
 
     if not tasks:
-        return jsonify({"message": "????????????????"}), 400
+        return jsonify({"message": "请先添加至少一个任务，再生成计划"}), 400
 
     max_deadline_dt = max(parse_date(task["deadline"]) for task in tasks)
     planning_end_dt = max(planning_start_dt, max_deadline_dt)
@@ -654,13 +801,13 @@ def generate_plan_for_date():
     segments_by_date = build_day_segments(availability, planning_start_dt, planning_end_dt)
     total_slot_minutes = sum(max(0, e - s) for segs in segments_by_date.values() for s, e in segs)
     if total_slot_minutes <= 0:
-        return jsonify({"message": "??????DDL???????????????????"}), 400
+        return jsonify({"message": "从今天到任务DDL前都没有可用空闲时段，请先在设置中配置"}), 400
 
     ok, model_msg = ollama_model_ready()
     if not ok:
-        return jsonify({"message": f"Ollama ????{model_msg}"}), 503
+        return jsonify({"message": f"Ollama 不可用：{model_msg}"}), 503
 
-    rag_samples = load_rag_samples()
+    rag_samples = load_rag_samples(username)
     rag_examples_by_task: dict[str, list[dict[str, Any]]] = {}
     for task in tasks:
         rag_examples_by_task[task["id"]] = compute_rag_examples(task["title"], rag_samples)
@@ -696,10 +843,10 @@ def generate_plan_for_date():
     except RuntimeError as exc:
         msg = str(exc)
         if "timed out" in msg.lower():
-            return jsonify({"message": f"???????{OLLAMA_TIMEOUT_SEC} ??????"}), 504
-        return jsonify({"message": f"???????{msg}"}), 502
+            return jsonify({"message": f"模型响应超时（{OLLAMA_TIMEOUT_SEC} 秒内未返回）"}), 504
+        return jsonify({"message": f"模型调用失败：{msg}"}), 502
     except Exception as exc:
-        return jsonify({"message": f"???????{exc}"}), 502
+        return jsonify({"message": f"模型解析失败：{exc}"}), 502
 
     estimated_minutes_by_id: dict[str, int] = {}
     estimate_details = []
@@ -712,7 +859,7 @@ def generate_plan_for_date():
             evidence_ids = est_map[task_id]["evidence_ids"]
         else:
             est_val, fallback_reason = fallback_estimate(task, task_examples)
-            reason = fallback_reason if task_id not in est_map else f"{est_map[task_id]['reason']}????????"
+            reason = fallback_reason if task_id not in est_map else f"{est_map[task_id]['reason']}；证据无效已回退"
             evidence_ids = []
         estimated_minutes_by_id[task_id] = est_val
         estimate_details.append(
@@ -743,18 +890,18 @@ def generate_plan_for_date():
 
     risks = list(llm_risks)
     if unscheduled_ids:
-        risks.append("??????????????DDL????")
+        risks.append("空闲时段不足，部分任务无法在DDL前完成。")
     if total_needed_minutes > total_slot_minutes:
-        risks.append(f"??? {total_needed_minutes} ????????? {total_slot_minutes} ???")
+        risks.append(f"总需求 {total_needed_minutes} 分钟，高于可用时段 {total_slot_minutes} 分钟。")
     if total_scheduled_minutes < total_needed_minutes:
-        risks.append(f"??? {total_scheduled_minutes} / {total_needed_minutes} ?????????????????")
+        risks.append(f"已安排 {total_scheduled_minutes} / {total_needed_minutes} 分钟，建议压缩任务或增加空闲时段。")
     if not any(rag_examples_by_task.values()):
-        risks.append("RAG ??????????????")
+        risks.append("RAG 样本不足，估时回退比例较高。")
 
     note = ""
     if unscheduled_ids:
         titles = [id_to_task[tid]["title"] for tid in unscheduled_ids if tid in id_to_task]
-        note = f"??????????DDL??{', '.join(titles)}"
+        note = f"以下任务未能完全排入DDL前：{', '.join(titles)}"
 
     rag_examples_flat = []
     for task in tasks:
@@ -767,7 +914,7 @@ def generate_plan_for_date():
         )
 
     details = {
-        "rationale": llm_notes or "???DDL????????????????????????????",
+        "rationale": llm_notes or "计划按DDL优先，并允许任务拆分到多个日期，只在用户空闲时段中安排。",
         "risks": risks,
         "taskEstimates": estimate_details,
         "ragTopK": RAG_TOP_K,
@@ -810,9 +957,11 @@ def generate_plan_for_date():
         }
 
     with store_lock:
-        store["plansByDate"] = generated_plans
-        store["todayPlan"] = generated_plans.get(today_str())
-        store["lastPlanner"] = f"ollama:{OLLAMA_MODEL}+rag_top_k={RAG_TOP_K}"
+        state = load_user_state(username)
+        state["plansByDate"] = generated_plans
+        state["todayPlan"] = generated_plans.get(today_str())
+        state["lastPlanner"] = f"ollama:{OLLAMA_MODEL}+rag_top_k={RAG_TOP_K}"
+        save_user_state(username, state)
 
     plan = generated_plans.get(target_date) or {
         "date": target_date,
@@ -823,28 +972,47 @@ def generate_plan_for_date():
         "note": note,
         "details": details,
     }
-    return jsonify({"plan": plan, "planner": store["lastPlanner"], "planningWindow": {"start": planning_start, "end": planning_end}})
+    return jsonify(
+        {
+            "plan": plan,
+            "planner": state["lastPlanner"],
+            "planningWindow": {"start": planning_start, "end": planning_end},
+        }
+    )
 
 
 @app.route("/api/plans/today", methods=["POST"])
 def build_today_plan():
-    with app.test_request_context(json={"date": today_str()}):
+    payload = request.get_json(silent=True) or {}
+    payload["date"] = today_str()
+    auth_header = request.headers.get("Authorization")
+    headers = {}
+    if auth_header:
+        headers["Authorization"] = auth_header
+    with app.test_request_context(method="POST", json=payload, headers=headers):
         return generate_plan_for_date()
 
 
 @app.route("/api/plans/<date_str>", methods=["GET"])
 def get_plan_by_date(date_str: str):
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
     try:
         parse_date(date_str)
     except ValueError:
         return jsonify({"message": "date must be YYYY-MM-DD"}), 400
     with store_lock:
-        plan = store["plansByDate"].get(date_str)
+        state = load_user_state(username)
+        plan = state["plansByDate"].get(date_str)
     return jsonify({"plan": plan})
 
 
 @app.route("/api/checkins", methods=["POST"])
 def create_checkin():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
     payload = request.get_json(silent=True) or {}
     task_id = str(payload.get("taskId") or "").strip()
     done = bool(payload.get("done", False))
@@ -861,7 +1029,8 @@ def create_checkin():
             return jsonify({"message": "actualMinutes must be > 0"}), 400
 
     with store_lock:
-        task = next((item for item in store["tasks"] if item["id"] == task_id), None)
+        state = load_user_state(username)
+        task = next((item for item in state["tasks"] if item["id"] == task_id), None)
         if task is None:
             return jsonify({"message": "taskId not found"}), 404
         task["status"] = "done" if done else "todo"
@@ -871,17 +1040,18 @@ def create_checkin():
             "actualMinutes": actual_minutes,
             "checkedAt": iso_now(),
         }
-        store["checkins"].insert(0, checkin)
+        state["checkins"].insert(0, checkin)
+        save_user_state(username, state)
 
     sample = build_rag_sample_from_checkin(task, checkin)
     if sample is not None:
-        append_rag_sample(sample)
+        append_rag_sample(username, sample)
 
     return jsonify(checkin), 201
 
 
 with store_lock:
-    store["weeklyAvailability"] = load_weekly_availability()
+    load_users()
 
 
 if __name__ == "__main__":

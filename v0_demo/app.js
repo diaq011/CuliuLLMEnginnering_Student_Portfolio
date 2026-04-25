@@ -14,6 +14,8 @@ const WEEK_LABELS = {
 };
 
 const state = {
+  authToken: localStorage.getItem("auth_token") || "",
+  currentUser: "",
   tasks: [],
   todayPlan: null,
   selectedPlan: null,
@@ -60,6 +62,12 @@ const ui = {
   planReasonText: document.getElementById("planReasonText"),
   planRiskList: document.getElementById("planRiskList"),
   planEstimateList: document.getElementById("planEstimateList"),
+  authForm: document.getElementById("authForm"),
+  authUsername: document.getElementById("authUsername"),
+  authPassword: document.getElementById("authPassword"),
+  registerBtn: document.getElementById("registerBtn"),
+  logoutBtn: document.getElementById("logoutBtn"),
+  authStatus: document.getElementById("authStatus"),
 };
 
 bootstrap().catch((error) => setFeedback(`初始化失败：${error.message}`, true));
@@ -82,6 +90,17 @@ ui.planInfoModal.addEventListener("click", (e) => {
   if (e.target === ui.planInfoModal) closePlanInfoModal();
 });
 
+ui.authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await login();
+});
+ui.registerBtn.addEventListener("click", async () => {
+  await register();
+});
+ui.logoutBtn.addEventListener("click", async () => {
+  await logout();
+});
+
 ui.timerToggleBtn.addEventListener("click", () => {
   state.timerRunning = !state.timerRunning;
   ui.timerToggleBtn.textContent = state.timerRunning ? "暂停" : "开始";
@@ -102,6 +121,7 @@ ui.timerResetBtn.addEventListener("click", () => {
 
 ui.taskForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (!state.currentUser) return setFeedback("请先登录", true);
   const title = ui.titleInput.value.trim();
   const deadline = ui.deadlineInput.value;
   const estimateRaw = ui.estimateInput.value.trim();
@@ -153,6 +173,7 @@ ui.copyAllDaysBtn.addEventListener("click", () => {
 
 ui.availabilityForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (!state.currentUser) return setFeedback("请先登录", true);
   const hadPlan = !!(state.todayPlan || state.selectedPlan);
   try {
     const payload = collectAvailabilityPayload();
@@ -181,11 +202,13 @@ ui.generateBtn.addEventListener("click", async () => {
 });
 
 ui.timelineCanvas.addEventListener("dblclick", async (event) => {
+  if (!state.currentUser) return;
   const block = event.target.closest(".timeline-block");
   if (!block) return;
   await completeTaskFromBlock(block.dataset.taskId);
 });
 ui.timelineCanvas.addEventListener("click", async (event) => {
+  if (!state.currentUser) return;
   const block = event.target.closest(".timeline-block");
   if (!block) return;
   const now = Date.now();
@@ -199,6 +222,7 @@ ui.timelineCanvas.addEventListener("click", async (event) => {
 });
 
 ui.planList.addEventListener("click", async (event) => {
+  if (!state.currentUser) return;
   const check = event.target.closest(".task-check");
   if (!check) return;
   const taskId = check.dataset.taskId;
@@ -215,20 +239,140 @@ ui.planList.addEventListener("click", async (event) => {
   }
 });
 
+function renderAuthStatus() {
+  ui.authStatus.textContent = state.currentUser ? `当前账号：${state.currentUser}` : "未登录";
+  const disabled = !state.currentUser;
+  [ui.taskForm, ui.generateBtn, ui.availabilityForm, ui.planInfoBtn].forEach((el) => {
+    if (!el) return;
+    if (el.tagName === "FORM") {
+      Array.from(el.querySelectorAll("input,button,select,textarea")).forEach((n) => {
+        if (n.id === "registerBtn" || n.id === "logoutBtn" || n.id === "loginBtn") return;
+        n.disabled = disabled;
+      });
+      return;
+    }
+    el.disabled = disabled;
+  });
+  ui.logoutBtn.disabled = !state.currentUser;
+}
+
+function clearAppData() {
+  state.tasks = [];
+  state.todayPlan = null;
+  state.selectedPlan = null;
+  state.checkins = [];
+  state.planner = "none";
+  state.weeklyAvailability = Object.fromEntries(WEEK_KEYS.map((k) => [k, []]));
+  renderAvailabilityEditor();
+  renderTimeline();
+  renderPlanList();
+}
+
+async function tryRestoreSession() {
+  if (!state.authToken) {
+    renderAuthStatus();
+    return;
+  }
+  try {
+    const me = await api("/auth/me");
+    state.currentUser = me.user?.username || "";
+    await refreshAvailability();
+    await refreshState();
+    await refreshSelectedDatePlan();
+  } catch {
+    state.authToken = "";
+    state.currentUser = "";
+    localStorage.removeItem("auth_token");
+    clearAppData();
+  }
+  renderAuthStatus();
+}
+
+async function register() {
+  const username = ui.authUsername.value.trim();
+  const password = ui.authPassword.value;
+  if (!username || !password) return setFeedback("请输入用户名和密码", true);
+  try {
+    const result = await api("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+      authOptional: true,
+    });
+    state.authToken = result.token || "";
+    state.currentUser = result.user?.username || username;
+    localStorage.setItem("auth_token", state.authToken);
+    await refreshAvailability();
+    await refreshState();
+    await refreshSelectedDatePlan();
+    renderDateSwitcher();
+    renderTimeline();
+    renderPlanList();
+    renderAuthStatus();
+    setFeedback(`注册并登录成功：${state.currentUser}`);
+  } catch (error) {
+    setFeedback(`注册失败：${error.message}`, true);
+  }
+}
+
+async function login() {
+  const username = ui.authUsername.value.trim();
+  const password = ui.authPassword.value;
+  if (!username || !password) return setFeedback("请输入用户名和密码", true);
+  try {
+    const result = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+      authOptional: true,
+    });
+    state.authToken = result.token || "";
+    state.currentUser = result.user?.username || username;
+    localStorage.setItem("auth_token", state.authToken);
+    await refreshAvailability();
+    await refreshState();
+    await refreshSelectedDatePlan();
+    renderDateSwitcher();
+    renderTimeline();
+    renderPlanList();
+    renderAuthStatus();
+    setFeedback(`登录成功：${state.currentUser}`);
+  } catch (error) {
+    setFeedback(`登录失败：${error.message}`, true);
+  }
+}
+
+async function logout() {
+  try {
+    if (state.authToken) {
+      await api("/auth/logout", { method: "POST" });
+    }
+  } catch {
+    // ignore
+  }
+  state.authToken = "";
+  state.currentUser = "";
+  localStorage.removeItem("auth_token");
+  clearAppData();
+  renderAuthStatus();
+  setFeedback("已退出登录");
+}
+
 async function bootstrap() {
   buildTimeOptions();
   renderTimer();
   switchPage("home");
-  await refreshAvailability();
-  await refreshState();
-  await refreshSelectedDatePlan();
+  await tryRestoreSession();
   renderDateSwitcher();
   renderTimeline();
   renderPlanList();
-  setFeedback("准备就绪。可切换日子查看计划。");
+  if (!state.currentUser) {
+    setFeedback("请先登录后使用任务与计划功能。");
+  } else {
+    setFeedback(`已登录：${state.currentUser}`);
+  }
 }
 
 async function changeSelectedDate(deltaDays) {
+  if (!state.currentUser) return;
   state.selectedDate = shiftDate(state.selectedDate, deltaDays);
   await refreshSelectedDatePlan();
   renderDateSwitcher();
@@ -236,6 +380,7 @@ async function changeSelectedDate(deltaDays) {
 }
 
 async function generatePlanForToday() {
+  if (!state.currentUser) return setFeedback("请先登录", true);
   if (ui.generateBtn.disabled) return;
   setGenerateLoading(true);
   try {
@@ -337,12 +482,14 @@ function setGenerateLoading(loading) {
 }
 
 async function refreshAvailability() {
+  if (!state.currentUser) return;
   const data = await api("/settings/availability");
   state.weeklyAvailability = data.weeklyAvailability || state.weeklyAvailability;
   renderAvailabilityEditor();
 }
 
 async function refreshState() {
+  if (!state.currentUser) return;
   const data = await api("/state");
   state.tasks = data.tasks || [];
   state.todayPlan = data.todayPlan || null;
@@ -355,6 +502,10 @@ async function refreshState() {
 }
 
 async function refreshSelectedDatePlan() {
+  if (!state.currentUser) {
+    state.selectedPlan = null;
+    return;
+  }
   const data = await api(`/plans/${state.selectedDate}`);
   state.selectedPlan = data.plan || null;
 }
@@ -585,12 +736,24 @@ function setFeedback(message, isError = false) {
 }
 
 async function api(path, options = {}) {
+  const authOptional = !!options.authOptional;
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (state.authToken) headers.Authorization = `Bearer ${state.authToken}`;
+  const fetchOptions = { ...options, headers };
+  delete fetchOptions.authOptional;
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
+    ...fetchOptions,
   });
   const raw = await response.text();
   const data = raw ? JSON.parse(raw) : {};
+  if (response.status === 401 && !authOptional) {
+    state.authToken = "";
+    state.currentUser = "";
+    localStorage.removeItem("auth_token");
+    clearAppData();
+    renderAuthStatus();
+    throw new Error("登录已失效，请重新登录");
+  }
   if (!response.ok) throw new Error(data.message || `HTTP ${response.status}`);
   return data;
 }
