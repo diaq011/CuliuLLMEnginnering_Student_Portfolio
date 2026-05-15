@@ -48,6 +48,40 @@ WEEK_LABELS = {
     "sun": "周日",
 }
 
+SUBJECT_LABELS = {
+    "chinese": "语文",
+    "math": "数学",
+    "english": "英语",
+    "physics": "物理",
+    "chemistry": "化学",
+    "biology": "生物",
+    "history": "历史",
+    "politics": "政治",
+    "geography": "地理",
+    "general": "综合/其他",
+}
+
+TASK_TYPE_LABELS = {
+    "test_paper": "试卷",
+    "exercise_set": "习题/刷题",
+    "essay": "作文/写作",
+    "reading": "阅读",
+    "recitation": "背诵",
+    "vocabulary": "单词/词组",
+    "mistake_review": "错题整理",
+    "chapter_review": "章节复习",
+    "preview": "预习",
+    "lab_report": "实验报告",
+    "group_work": "小组作业",
+    "presentation": "展示/PPT",
+}
+
+DIFFICULTY_LABELS = {
+    "easy": "简单",
+    "medium": "普通",
+    "hard": "困难",
+}
+
 users_db: dict[str, dict[str, str]] = {}
 sessions: dict[str, str] = {}
 
@@ -265,8 +299,9 @@ def build_rag_sample_from_checkin(task: dict[str, Any], checkin: dict[str, Any])
         "estimated_minutes": int(task.get("estimatedMinutes") or 0),
         "completed": True,
         "created_at": checkin.get("checkedAt") or iso_now(),
-        "subject_tag": "",
-        "difficulty_tag": "",
+        "subject_tag": task.get("subject", "general"),
+        "task_type_tag": task.get("taskType", "exercise_set"),
+        "difficulty_tag": task.get("difficulty", "medium"),
     }
 
 
@@ -296,8 +331,11 @@ def days_since(iso_value: str) -> float:
     return max(0.0, (datetime.now() - dt).total_seconds() / 86400.0)
 
 
-def compute_rag_examples(task_title: str, all_samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    tokens = tokenize_title(task_title)
+def compute_rag_examples(task: dict[str, Any], all_samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    tokens = tokenize_title(task.get("title", ""))
+    subject = task.get("subject", "general")
+    task_type = task.get("taskType", "exercise_set")
+    difficulty = task.get("difficulty", "medium")
     completed_samples = [s for s in all_samples if s.get("completed")]
     actuals = []
     for s in completed_samples:
@@ -313,6 +351,9 @@ def compute_rag_examples(task_title: str, all_samples: list[dict[str, Any]]) -> 
         stokens = set(sample.get("task_tokens") or tokenize_title(sample.get("task_title", "")))
         union = tokens | stokens
         text_score = 0.0 if not union else len(tokens & stokens) / len(union)
+        subject_score = 1.0 if sample.get("subject_tag") == subject else 0.0
+        type_score = 1.0 if sample.get("task_type_tag") == task_type else 0.0
+        difficulty_score = 1.0 if sample.get("difficulty_tag") == difficulty else 0.0
         actual = int(sample.get("actual_minutes", 0) or 0)
         if actual <= 0:
             continue
@@ -320,7 +361,14 @@ def compute_rag_examples(task_title: str, all_samples: list[dict[str, Any]]) -> 
         reliability = 0.3 if z > 3 else 1.0
         age_days = days_since(str(sample.get("created_at", "")))
         decay = math.exp(-age_days / max(1, RAG_TIME_DECAY_DAYS))
-        score = text_score * 0.6 + reliability * 0.25 + decay * 0.15
+        score = (
+            text_score * 0.35
+            + subject_score * 0.2
+            + type_score * 0.18
+            + difficulty_score * 0.07
+            + reliability * 0.12
+            + decay * 0.08
+        )
         if score < RAG_MIN_CONFIDENCE:
             continue
         scored.append(
@@ -329,6 +377,9 @@ def compute_rag_examples(task_title: str, all_samples: list[dict[str, Any]]) -> 
                 "task_title": sample.get("task_title", ""),
                 "actual_minutes": actual,
                 "estimated_minutes": int(sample.get("estimated_minutes", 0) or 0),
+                "subject": sample.get("subject_tag", "general"),
+                "task_type": sample.get("task_type_tag", "exercise_set"),
+                "difficulty": sample.get("difficulty_tag", "medium"),
                 "created_at": sample.get("created_at", ""),
                 "score": round(score, 4),
             }
@@ -377,6 +428,12 @@ def build_llm_prompt_payload(
                 "task_id": task["id"],
                 "title": task["title"],
                 "deadline": task["deadline"],
+                "subject": task.get("subject", "general"),
+                "subject_label": SUBJECT_LABELS.get(task.get("subject", "general"), "综合/其他"),
+                "task_type": task.get("taskType", "exercise_set"),
+                "task_type_label": TASK_TYPE_LABELS.get(task.get("taskType", "exercise_set"), "习题/刷题"),
+                "difficulty": task.get("difficulty", "medium"),
+                "difficulty_label": DIFFICULTY_LABELS.get(task.get("difficulty", "medium"), "普通"),
                 "user_estimated_minutes": int(task.get("estimatedMinutes") or 0),
                 "rag_examples": examples,
                 "rag_stats": stats,
@@ -743,10 +800,19 @@ def create_task():
     payload = request.get_json(silent=True) or {}
     title = str(payload.get("title") or "").strip()
     deadline = str(payload.get("deadline") or "").strip()
+    subject = str(payload.get("subject") or "general").strip()
+    task_type = str(payload.get("taskType") or "exercise_set").strip()
+    difficulty = str(payload.get("difficulty") or "medium").strip()
     estimated = payload.get("estimatedMinutes")
 
     if not title or not deadline:
         return jsonify({"message": "title and deadline are required"}), 400
+    if subject not in SUBJECT_LABELS:
+        return jsonify({"message": "subject is invalid"}), 400
+    if task_type not in TASK_TYPE_LABELS:
+        return jsonify({"message": "taskType is invalid"}), 400
+    if difficulty not in DIFFICULTY_LABELS:
+        return jsonify({"message": "difficulty is invalid"}), 400
     try:
         parse_date(deadline)
     except ValueError:
@@ -763,6 +829,9 @@ def create_task():
         "id": str(uuid4()),
         "title": title,
         "deadline": deadline,
+        "subject": subject,
+        "taskType": task_type,
+        "difficulty": difficulty,
         "estimatedMinutes": estimated,
         "status": "todo",
     }
@@ -810,7 +879,7 @@ def generate_plan_for_date():
     rag_samples = load_rag_samples(username)
     rag_examples_by_task: dict[str, list[dict[str, Any]]] = {}
     for task in tasks:
-        rag_examples_by_task[task["id"]] = compute_rag_examples(task["title"], rag_samples)
+        rag_examples_by_task[task["id"]] = compute_rag_examples(task, rag_samples)
 
     prompt_context = build_llm_prompt_payload(tasks, availability, planning_start, planning_end, rag_examples_by_task)
     llm_payload = {

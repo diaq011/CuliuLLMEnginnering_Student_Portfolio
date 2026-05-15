@@ -13,6 +13,40 @@ const WEEK_LABELS = {
   sun: "周日",
 };
 
+const SUBJECT_LABELS = {
+  chinese: "语文",
+  math: "数学",
+  english: "英语",
+  physics: "物理",
+  chemistry: "化学",
+  biology: "生物",
+  history: "历史",
+  politics: "政治",
+  geography: "地理",
+  general: "综合/其他",
+};
+
+const TASK_TYPE_LABELS = {
+  test_paper: "试卷",
+  exercise_set: "习题/刷题",
+  essay: "作文/写作",
+  reading: "阅读",
+  recitation: "背诵",
+  vocabulary: "单词/词组",
+  mistake_review: "错题整理",
+  chapter_review: "章节复习",
+  preview: "预习",
+  lab_report: "实验报告",
+  group_work: "小组作业",
+  presentation: "展示/PPT",
+};
+
+const DIFFICULTY_LABELS = {
+  easy: "简单",
+  medium: "普通",
+  hard: "困难",
+};
+
 const state = {
   authToken: localStorage.getItem("auth_token") || "",
   currentUser: "",
@@ -26,6 +60,13 @@ const state = {
   timerSeconds: 0,
   timerRunning: false,
   timerHandle: null,
+  focusBlockStartAt: "",
+  focusSessionStartAt: "",
+  focusElapsedMs: 0,
+  focusDisplayMode: localStorage.getItem("focus_display_mode") || "elapsed",
+  focusContent: localStorage.getItem("focus_content") || "",
+  focusBlocks: loadFocusBlocks(),
+  focusBubbleDrag: null,
   feedbackTimer: null,
   weeklyAvailability: Object.fromEntries(WEEK_KEYS.map((k) => [k, []])),
   lastTap: { taskId: "", ts: 0 },
@@ -40,6 +81,9 @@ const ui = {
   taskForm: document.getElementById("taskForm"),
   titleInput: document.getElementById("titleInput"),
   deadlineInput: document.getElementById("deadlineInput"),
+  subjectInput: document.getElementById("subjectInput"),
+  taskTypeInput: document.getElementById("taskTypeInput"),
+  difficultyInput: document.getElementById("difficultyInput"),
   estimateInput: document.getElementById("estimateInput"),
   generateBtn: document.getElementById("generateBtn"),
   generateSpinner: document.getElementById("generateSpinner"),
@@ -66,6 +110,17 @@ const ui = {
   planReasonText: document.getElementById("planReasonText"),
   planRiskList: document.getElementById("planRiskList"),
   planEstimateList: document.getElementById("planEstimateList"),
+  focusOverlay: document.getElementById("focusOverlay"),
+  focusMinimizeBtn: document.getElementById("focusMinimizeBtn"),
+  focusSettingsBtn: document.getElementById("focusSettingsBtn"),
+  focusClock: document.getElementById("focusClock"),
+  focusContentBtn: document.getElementById("focusContentBtn"),
+  focusPauseBtn: document.getElementById("focusPauseBtn"),
+  focusEndBtn: document.getElementById("focusEndBtn"),
+  focusBubble: document.getElementById("focusBubble"),
+  focusSettingsModal: document.getElementById("focusSettingsModal"),
+  closeFocusSettingsBtn: document.getElementById("closeFocusSettingsBtn"),
+  focusDisplayModeInputs: Array.from(document.querySelectorAll("input[name='focusDisplayMode']")),
   authForm: document.getElementById("authForm"),
   authUsername: document.getElementById("authUsername"),
   authPassword: document.getElementById("authPassword"),
@@ -107,31 +162,53 @@ ui.logoutBtn.addEventListener("click", async () => {
   await logout();
 });
 
-ui.timerToggleBtn.addEventListener("click", () => {
-  state.timerRunning = !state.timerRunning;
-  ui.timerToggleBtn.textContent = state.timerRunning ? "暂停" : "开始";
-  if (state.timerRunning) {
-    state.timerHandle = setInterval(() => {
-      state.timerSeconds += 1;
-      renderTimer();
-    }, 1000);
-  } else if (state.timerHandle) {
-    clearInterval(state.timerHandle);
-    state.timerHandle = null;
-  }
-});
+ui.timerToggleBtn.addEventListener("click", () => openFocusOverlay(true));
 ui.timerResetBtn.addEventListener("click", () => {
+  if (state.timerHandle) clearInterval(state.timerHandle);
+  state.timerHandle = null;
+  state.timerRunning = false;
   state.timerSeconds = 0;
+  state.focusElapsedMs = 0;
+  state.focusBlockStartAt = "";
+  state.focusSessionStartAt = "";
+  ui.timerToggleBtn.textContent = "开始";
   renderTimer();
+  renderFocusClock();
 });
+
+ui.focusMinimizeBtn.addEventListener("click", () => minimizeFocusOverlay());
+ui.focusSettingsBtn.addEventListener("click", () => openFocusSettings());
+ui.closeFocusSettingsBtn.addEventListener("click", () => closeFocusSettings());
+ui.focusSettingsModal.addEventListener("click", (event) => {
+  if (event.target === ui.focusSettingsModal) closeFocusSettings();
+});
+ui.focusDisplayModeInputs.forEach((input) => {
+  input.addEventListener("change", () => {
+    state.focusDisplayMode = input.value;
+    localStorage.setItem("focus_display_mode", state.focusDisplayMode);
+    renderFocusClock();
+  });
+});
+ui.focusContentBtn.addEventListener("click", () => editFocusContent());
+ui.focusPauseBtn.addEventListener("click", () => toggleFocusPause());
+ui.focusEndBtn.addEventListener("click", () => endFocusSession());
+ui.focusBubble.addEventListener("pointerdown", startFocusBubbleDrag);
+ui.focusBubble.addEventListener("pointermove", moveFocusBubble);
+ui.focusBubble.addEventListener("pointerup", endFocusBubbleDrag);
+ui.focusBubble.addEventListener("pointercancel", endFocusBubbleDrag);
 
 ui.taskForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!state.currentUser) return setFeedback("请先登录", true);
   const title = ui.titleInput.value.trim();
   const deadline = ui.deadlineInput.value;
+  const subject = ui.subjectInput.value;
+  const taskType = ui.taskTypeInput.value;
+  const difficulty = ui.difficultyInput.value;
   const estimateRaw = ui.estimateInput.value.trim();
-  if (!title || !deadline) return setFeedback("请填写任务名称和截止日期。", true);
+  if (!title || !deadline || !subject || !taskType || !difficulty) {
+    return setFeedback("请填写任务名称、截止日期、学科、任务类型和难度。", true);
+  }
 
   try {
     await api("/tasks", {
@@ -139,10 +216,16 @@ ui.taskForm.addEventListener("submit", async (event) => {
       body: JSON.stringify({
         title,
         deadline,
+        subject,
+        taskType,
+        difficulty,
         estimatedMinutes: estimateRaw ? Number.parseInt(estimateRaw, 10) : null,
       }),
     });
     ui.taskForm.reset();
+    ui.subjectInput.value = "math";
+    ui.taskTypeInput.value = "test_paper";
+    ui.difficultyInput.value = "medium";
     await refreshState();
     await refreshSelectedDatePlan();
     renderTimeline();
@@ -180,7 +263,6 @@ ui.copyAllDaysBtn.addEventListener("click", () => {
 ui.availabilityForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!state.currentUser) return setFeedback("请先登录", true);
-  const hadPlan = !!(state.todayPlan || state.selectedPlan);
   try {
     const payload = collectAvailabilityPayload();
     const result = await api("/settings/availability", {
@@ -190,14 +272,6 @@ ui.availabilityForm.addEventListener("submit", async (event) => {
     state.weeklyAvailability = result.weeklyAvailability;
     renderAvailabilityEditor();
     setFeedback("空闲时间段已保存。");
-
-    if (hadPlan) {
-      const needReplan = window.confirm("检测到已有计划。是否基于新的空闲时段重新规划？");
-      if (needReplan) {
-        switchPage("timeline");
-        await generatePlanForToday();
-      }
-    }
   } catch (error) {
     setFeedback(`保存失败：${error.message}`, true);
   }
@@ -364,7 +438,11 @@ async function logout() {
 
 async function bootstrap() {
   buildTimeOptions();
+  renderAvailabilityEditor();
   renderTimer();
+  renderFocusClock();
+  renderFocusContent();
+  syncFocusSettingsInputs();
   switchPage("home");
   await tryRestoreSession();
   renderDateSwitcher();
@@ -471,6 +549,7 @@ function showSettingsHome() {
 function showSettingsAvailability() {
   ui.settingsHome.hidden = true;
   ui.availabilitySettings.hidden = false;
+  renderAvailabilityEditor();
 }
 
 function buildTimeOptions() {
@@ -486,10 +565,175 @@ function buildTimeOptions() {
 }
 
 function renderTimer() {
-  const h = String(Math.floor(state.timerSeconds / 3600)).padStart(2, "0");
-  const m = String(Math.floor((state.timerSeconds % 3600) / 60)).padStart(2, "0");
-  const s = String(state.timerSeconds % 60).padStart(2, "0");
-  ui.timerDisplay.textContent = `${h}:${m}:${s}`;
+  ui.timerDisplay.textContent = formatDuration(state.timerSeconds);
+}
+
+function formatDuration(totalSeconds) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const h = String(Math.floor(safeSeconds / 3600)).padStart(2, "0");
+  const m = String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, "0");
+  const s = String(safeSeconds % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+function formatClock(date = new Date()) {
+  const h = String(date.getHours()).padStart(2, "0");
+  const m = String(date.getMinutes()).padStart(2, "0");
+  const s = String(date.getSeconds()).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+function getFocusElapsedMs() {
+  const liveMs = state.timerRunning && state.focusSessionStartAt
+    ? Date.now() - new Date(state.focusSessionStartAt).getTime()
+    : 0;
+  return state.focusElapsedMs + liveMs;
+}
+
+function renderFocusClock() {
+  const elapsedSeconds = Math.floor(getFocusElapsedMs() / 1000);
+  state.timerSeconds = elapsedSeconds;
+  renderTimer();
+  ui.focusClock.textContent = state.focusDisplayMode === "clock" ? formatClock() : formatDuration(elapsedSeconds);
+}
+
+function renderFocusContent() {
+  ui.focusContentBtn.textContent = state.focusContent.trim() || "未填写";
+}
+
+function ensureFocusTicker() {
+  if (state.timerHandle) return;
+  state.timerHandle = setInterval(() => {
+    renderFocusClock();
+  }, 500);
+}
+
+function stopFocusTickerIfIdle() {
+  if (!state.timerHandle || state.timerRunning) return;
+  if (state.focusDisplayMode === "clock" && !ui.focusOverlay.classList.contains("hidden")) return;
+  clearInterval(state.timerHandle);
+  state.timerHandle = null;
+}
+
+function openFocusOverlay(shouldStart) {
+  ui.focusOverlay.classList.remove("hidden");
+  ui.focusBubble.classList.add("hidden");
+  if (shouldStart && !state.timerRunning) {
+    if (!state.focusBlockStartAt) state.focusBlockStartAt = new Date().toISOString();
+    state.timerRunning = true;
+    state.focusSessionStartAt = new Date().toISOString();
+    ui.timerToggleBtn.textContent = "专注中";
+    ui.focusPauseBtn.textContent = "暂停";
+  }
+  ensureFocusTicker();
+  renderFocusClock();
+  renderFocusContent();
+}
+
+function minimizeFocusOverlay() {
+  ui.focusOverlay.classList.add("hidden");
+  ui.focusBubble.classList.remove("hidden");
+}
+
+function toggleFocusPause() {
+  if (state.timerRunning) {
+    state.focusElapsedMs = getFocusElapsedMs();
+    state.focusSessionStartAt = "";
+    state.timerRunning = false;
+    ui.focusPauseBtn.textContent = "继续";
+    ui.timerToggleBtn.textContent = "继续";
+    renderFocusClock();
+    stopFocusTickerIfIdle();
+    return;
+  }
+  state.timerRunning = true;
+  if (!state.focusBlockStartAt) state.focusBlockStartAt = new Date().toISOString();
+  state.focusSessionStartAt = new Date().toISOString();
+  ui.focusPauseBtn.textContent = "暂停";
+  ui.timerToggleBtn.textContent = "专注中";
+  ensureFocusTicker();
+  renderFocusClock();
+}
+
+function editFocusContent() {
+  const nextContent = window.prompt("请输入专注内容", state.focusContent || "");
+  if (nextContent === null) return;
+  state.focusContent = nextContent.trim();
+  localStorage.setItem("focus_content", state.focusContent);
+  renderFocusContent();
+}
+
+function openFocusSettings() {
+  syncFocusSettingsInputs();
+  ui.focusSettingsModal.classList.remove("hidden");
+}
+
+function closeFocusSettings() {
+  ui.focusSettingsModal.classList.add("hidden");
+}
+
+function syncFocusSettingsInputs() {
+  ui.focusDisplayModeInputs.forEach((input) => {
+    input.checked = input.value === state.focusDisplayMode;
+  });
+}
+
+function endFocusSession() {
+  const elapsedMs = getFocusElapsedMs();
+  const startedAt = state.focusBlockStartAt ? new Date(state.focusBlockStartAt) : new Date(Date.now() - elapsedMs);
+  if (elapsedMs >= 1000) {
+    addFocusTimelineBlock(startedAt, elapsedMs, state.focusContent.trim() || "未填写");
+  }
+  if (state.timerHandle) clearInterval(state.timerHandle);
+  state.timerHandle = null;
+  state.timerRunning = false;
+  state.timerSeconds = 0;
+  state.focusElapsedMs = 0;
+  state.focusBlockStartAt = "";
+  state.focusSessionStartAt = "";
+  ui.timerToggleBtn.textContent = "开始";
+  ui.focusPauseBtn.textContent = "暂停";
+  ui.focusOverlay.classList.add("hidden");
+  ui.focusBubble.classList.add("hidden");
+  renderTimer();
+  renderFocusClock();
+  renderTimeline();
+  setFeedback("专注记录已添加到时间轴。");
+}
+
+function startFocusBubbleDrag(event) {
+  ui.focusBubble.setPointerCapture(event.pointerId);
+  const rect = ui.focusBubble.getBoundingClientRect();
+  state.focusBubbleDrag = {
+    pointerId: event.pointerId,
+    offsetX: event.clientX - rect.left,
+    offsetY: event.clientY - rect.top,
+    moved: false,
+  };
+  ui.focusBubble.classList.add("dragging");
+}
+
+function moveFocusBubble(event) {
+  const drag = state.focusBubbleDrag;
+  if (!drag || drag.pointerId !== event.pointerId) return;
+  const maxLeft = window.innerWidth - ui.focusBubble.offsetWidth - 8;
+  const maxTop = window.innerHeight - ui.focusBubble.offsetHeight - 8;
+  const left = Math.max(8, Math.min(maxLeft, event.clientX - drag.offsetX));
+  const top = Math.max(8, Math.min(maxTop, event.clientY - drag.offsetY));
+  if (Math.abs(left - ui.focusBubble.offsetLeft) > 2 || Math.abs(top - ui.focusBubble.offsetTop) > 2) {
+    drag.moved = true;
+  }
+  ui.focusBubble.style.left = `${left}px`;
+  ui.focusBubble.style.top = `${top}px`;
+}
+
+function endFocusBubbleDrag(event) {
+  const drag = state.focusBubbleDrag;
+  if (!drag || drag.pointerId !== event.pointerId) return;
+  ui.focusBubble.releasePointerCapture(event.pointerId);
+  ui.focusBubble.classList.remove("dragging");
+  state.focusBubbleDrag = null;
+  if (!drag.moved) openFocusOverlay(false);
 }
 
 function setGenerateLoading(loading) {
@@ -563,7 +807,7 @@ function renderAvailabilityEditor() {
     const visibleRanges = ranges.length > 0 ? ranges : [{ start: "", end: "", isDraft: true }];
     visibleRanges.forEach((slot, idx) => {
       const slotRow = document.createElement("div");
-      slotRow.className = "slot-row";
+      slotRow.className = `slot-row ${slot.isDraft ? "is-draft" : ""}`;
       const removeButton = slot.isDraft
         ? ""
         : `<button class="btn small" type="button" data-remove-day="${day}" data-remove-index="${idx}">删除</button>`;
@@ -715,6 +959,53 @@ function renderTimeline() {
     `;
     ui.timelineCanvas.appendChild(el);
   });
+
+  state.focusBlocks
+    .filter((block) => block.date === state.selectedDate)
+    .forEach((block) => {
+      const blockTop = (block.startMinute - startHour * 60) * pxPerMinute;
+      const blockHeight = Math.max((block.endMinute - block.startMinute) * pxPerMinute, 20);
+      const el = document.createElement("div");
+      el.className = "timeline-block focus-block";
+      el.style.top = `${Math.max(0, blockTop)}px`;
+      el.style.height = `${blockHeight}px`;
+      el.innerHTML = `
+        <p>${escapeHtml(block.title)}</p>
+        <p class="ddl">${escapeHtml(minutesToHHMM(block.startMinute))}-${escapeHtml(minutesToHHMM(block.endMinute))} · 专注</p>
+      `;
+      ui.timelineCanvas.appendChild(el);
+    });
+}
+
+function loadFocusBlocks() {
+  try {
+    const raw = localStorage.getItem("focus_blocks");
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFocusBlocks() {
+  localStorage.setItem("focus_blocks", JSON.stringify(state.focusBlocks));
+}
+
+function addFocusTimelineBlock(startedAt, elapsedMs, title) {
+  const startMinute = startedAt.getHours() * 60 + startedAt.getMinutes();
+  const durationMinutes = Math.max(1, Math.ceil(elapsedMs / 60000));
+  const endMinute = Math.min(24 * 60, startMinute + durationMinutes);
+  const block = {
+    id: `focus-${Date.now()}`,
+    date: formatDate(startedAt),
+    startMinute,
+    endMinute,
+    title,
+  };
+  state.focusBlocks.push(block);
+  saveFocusBlocks();
+  state.selectedDate = block.date;
+  renderDateSwitcher();
 }
 
 function renderPlanList() {
@@ -731,13 +1022,16 @@ function renderPlanList() {
   ordered.forEach((task) => {
     const doneClass = task.status === "done" ? "done" : "";
     const checkMark = task.status === "done" ? "✓" : "";
+    const subjectLabel = SUBJECT_LABELS[task.subject] || "综合/其他";
+    const taskTypeLabel = TASK_TYPE_LABELS[task.taskType] || "习题/刷题";
+    const difficultyLabel = DIFFICULTY_LABELS[task.difficulty] || "普通";
     const li = document.createElement("li");
     li.innerHTML = `
       <div class="task-item ${doneClass}">
         <div class="task-check ${task.status === "done" ? "checked" : ""}" data-task-id="${task.id}">${checkMark}</div>
         <div class="task-main">
           <div class="task-title">${escapeHtml(task.title)}</div>
-          <div class="task-meta">DDL: ${escapeHtml(task.deadline)} · 预估 ${task.estimatedMinutes || 60} 分钟</div>
+          <div class="task-meta">DDL: ${escapeHtml(task.deadline)} · ${escapeHtml(subjectLabel)} · ${escapeHtml(taskTypeLabel)} · ${escapeHtml(difficultyLabel)} · 预估 ${task.estimatedMinutes || 60} 分钟</div>
         </div>
       </div>
     `;

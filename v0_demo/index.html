@@ -13,7 +13,7 @@
         <img id="homeTitleImage" class="home-title-image" src="./assets/title-j-simulator.png" alt="J人模拟器">
       </header>
       <div class="card">
-        <h2>计时器</h2>
+        <h2>专注</h2>
         <div id="timerDisplay" class="timer-display">00:00:00</div>
         <div class="timer-actions">
           <button id="timerToggleBtn" class="btn primary" type="button">开始</button>
@@ -65,7 +65,7 @@
             <span class="btn-text">生成计划（全部任务）</span>
             <span id="generateSpinner" class="spinner" aria-hidden="true"></span>
           </button>
-          <button id="planInfoBtn" class="btn info-btn" type="button" title="查看计划详情">🛈</button>
+          <button id="planInfoBtn" class="btn info-btn" type="button" title="查看计划详情" aria-label="查看计划详情">i</button>
         </div>
         <p id="timelineHint" class="hint">双击任务块可标记完成并从时间轴移除。</p>
       </div>
@@ -88,6 +88,46 @@
           <label>
             截止日期
             <input id="deadlineInput" name="deadline" type="date" required>
+          </label>
+          <label>
+            学科
+            <select id="subjectInput" name="subject" required>
+              <option value="math">数学</option>
+              <option value="english">英语</option>
+              <option value="chinese">语文</option>
+              <option value="physics">物理</option>
+              <option value="chemistry">化学</option>
+              <option value="biology">生物</option>
+              <option value="history">历史</option>
+              <option value="politics">政治</option>
+              <option value="geography">地理</option>
+              <option value="general">综合/其他</option>
+            </select>
+          </label>
+          <label>
+            任务类型
+            <select id="taskTypeInput" name="taskType" required>
+              <option value="test_paper">试卷</option>
+              <option value="exercise_set">习题/刷题</option>
+              <option value="essay">作文/写作</option>
+              <option value="reading">阅读</option>
+              <option value="recitation">背诵</option>
+              <option value="vocabulary">单词/词组</option>
+              <option value="mistake_review">错题整理</option>
+              <option value="chapter_review">章节复习</option>
+              <option value="preview">预习</option>
+              <option value="lab_report">实验报告</option>
+              <option value="group_work">小组作业</option>
+              <option value="presentation">展示/PPT</option>
+            </select>
+          </label>
+          <label>
+            难度
+            <select id="difficultyInput" name="difficulty" required>
+              <option value="easy">简单</option>
+              <option value="medium" selected>普通</option>
+              <option value="hard">困难</option>
+            </select>
           </label>
           <label>
             预估时长（分钟，可选）
@@ -136,6 +176,40 @@
 
     <div id="feedbackBox" class="feedback" aria-live="polite"></div>
   </main>
+
+  <section id="focusOverlay" class="focus-overlay hidden" aria-label="专注界面">
+    <button id="focusMinimizeBtn" class="focus-icon-btn focus-minimize" type="button" aria-label="最小化专注界面">⌄</button>
+    <button id="focusSettingsBtn" class="focus-icon-btn focus-settings" type="button" aria-label="专注设置">⚙</button>
+    <div class="focus-center">
+      <div id="focusClock" class="focus-clock">00:00:00</div>
+      <button id="focusContentBtn" class="focus-content-btn" type="button">未填写</button>
+      <div class="focus-actions">
+        <button id="focusPauseBtn" class="btn" type="button">暂停</button>
+        <button id="focusEndBtn" class="btn primary" type="button">结束</button>
+      </div>
+    </div>
+  </section>
+
+  <button id="focusBubble" class="focus-bubble hidden" type="button" aria-label="恢复专注界面">专</button>
+
+  <div id="focusSettingsModal" class="modal hidden">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>专注设置</h3>
+        <button id="closeFocusSettingsBtn" class="btn small" type="button">关闭</button>
+      </div>
+      <div class="modal-body">
+        <label class="radio-row">
+          <input type="radio" name="focusDisplayMode" value="elapsed">
+          显示计时器累积时长
+        </label>
+        <label class="radio-row">
+          <input type="radio" name="focusDisplayMode" value="clock">
+          显示实时时间
+        </label>
+      </div>
+    </div>
+  </div>
 
   <div id="planInfoModal" class="modal hidden">
     <div class="modal-panel">
