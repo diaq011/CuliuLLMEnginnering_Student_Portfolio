@@ -22,6 +22,7 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(__file__).resolve().parent / "data"
 USERS_FILE = DATA_DIR / "users.json"
 USER_DATA_DIR = DATA_DIR / "users"
+KNOWLEDGE_FILE = DATA_DIR / "knowledge" / "task_duration_knowledge.jsonl"
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
@@ -262,6 +263,26 @@ def load_rag_samples(username: str) -> list[dict[str, Any]]:
     return samples
 
 
+def load_knowledge_records() -> list[dict[str, Any]]:
+    if not KNOWLEDGE_FILE.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    for line in KNOWLEDGE_FILE.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            obj = json.loads(line)
+        except Exception:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        rid = str(obj.get("id") or "").strip()
+        if not rid:
+            continue
+        records.append(obj)
+    return records
+
+
 def append_rag_sample(username: str, sample: dict[str, Any]) -> None:
     USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
     with user_rag_file(username).open("a", encoding="utf-8") as fp:
@@ -331,7 +352,18 @@ def days_since(iso_value: str) -> float:
     return max(0.0, (datetime.now() - dt).total_seconds() / 86400.0)
 
 
-def compute_rag_examples(task: dict[str, Any], all_samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def estimate_value_from_example(example: dict[str, Any]) -> int:
+    for key in ("actual_minutes", "estimated_minutes_p50", "estimated_minutes"):
+        try:
+            value = int(example.get(key, 0) or 0)
+        except Exception:
+            value = 0
+        if value > 0:
+            return value
+    return 0
+
+
+def compute_history_rag_examples(task: dict[str, Any], all_samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
     tokens = tokenize_title(task.get("title", ""))
     subject = task.get("subject", "general")
     task_type = task.get("taskType", "exercise_set")
@@ -374,6 +406,7 @@ def compute_rag_examples(task: dict[str, Any], all_samples: list[dict[str, Any]]
         scored.append(
             {
                 "sample_id": sample.get("sample_id"),
+                "source": "user_history",
                 "task_title": sample.get("task_title", ""),
                 "actual_minutes": actual,
                 "estimated_minutes": int(sample.get("estimated_minutes", 0) or 0),
@@ -388,10 +421,86 @@ def compute_rag_examples(task: dict[str, Any], all_samples: list[dict[str, Any]]
     return scored[: max(0, RAG_TOP_K)]
 
 
+def compute_knowledge_rag_examples(task: dict[str, Any], knowledge_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    tokens = tokenize_title(
+        " ".join(
+            [
+                task.get("title", ""),
+                SUBJECT_LABELS.get(task.get("subject", "general"), ""),
+                TASK_TYPE_LABELS.get(task.get("taskType", "exercise_set"), ""),
+                DIFFICULTY_LABELS.get(task.get("difficulty", "medium"), ""),
+            ]
+        )
+    )
+    subject = task.get("subject", "general")
+    task_type = task.get("taskType", "exercise_set")
+    difficulty = task.get("difficulty", "medium")
+    scored: list[dict[str, Any]] = []
+    for record in knowledge_records:
+        rid = str(record.get("id") or "").strip()
+        if not rid:
+            continue
+        searchable = " ".join(
+            [
+                str(record.get("description", "")),
+                str(record.get("planning_advice", "")),
+                str(record.get("subject_label", "")),
+                str(record.get("task_type_label", "")),
+                " ".join(str(tag) for tag in record.get("tags", []) if isinstance(tag, str)),
+            ]
+        )
+        rtokens = tokenize_title(searchable)
+        union = tokens | rtokens
+        text_score = 0.0 if not union else len(tokens & rtokens) / len(union)
+        subject_score = 1.0 if record.get("subject") == subject else 0.0
+        type_score = 1.0 if record.get("task_type") == task_type else 0.0
+        difficulty_score = 1.0 if record.get("difficulty") == difficulty else 0.0
+        try:
+            confidence = float(record.get("confidence", 0.55) or 0.55)
+        except Exception:
+            confidence = 0.55
+        score = text_score * 0.22 + subject_score * 0.28 + type_score * 0.28 + difficulty_score * 0.1 + confidence * 0.12
+        if score < RAG_MIN_CONFIDENCE:
+            continue
+        estimated = estimate_value_from_example(record)
+        if estimated <= 0:
+            continue
+        scored.append(
+            {
+                "sample_id": rid,
+                "source": "knowledge_base",
+                "task_title": record.get("description", ""),
+                "actual_minutes": estimated,
+                "estimated_minutes": estimated,
+                "estimated_minutes_min": record.get("estimated_minutes_min"),
+                "estimated_minutes_max": record.get("estimated_minutes_max"),
+                "subject": record.get("subject", "general"),
+                "task_type": record.get("task_type", "exercise_set"),
+                "difficulty": record.get("difficulty", "medium"),
+                "planning_advice": record.get("planning_advice", ""),
+                "score": round(score, 4),
+            }
+        )
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[: max(0, RAG_TOP_K)]
+
+
+def compute_rag_examples(
+    task: dict[str, Any],
+    history_samples: list[dict[str, Any]],
+    knowledge_records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    combined = compute_history_rag_examples(task, history_samples) + compute_knowledge_rag_examples(task, knowledge_records)
+    combined.sort(key=lambda x: x.get("score", 0), reverse=True)
+    return combined[: max(0, RAG_TOP_K)]
+
+
 def summarize_examples(examples: list[dict[str, Any]]) -> dict[str, float]:
     if not examples:
         return {"count": 0, "mean": 0, "median": 0, "p75": 0}
-    vals = sorted(int(e["actual_minutes"]) for e in examples)
+    vals = sorted(estimate_value_from_example(e) for e in examples if estimate_value_from_example(e) > 0)
+    if not vals:
+        return {"count": 0, "mean": 0, "median": 0, "p75": 0}
     n = len(vals)
     mean = round(sum(vals) / n)
     median = vals[n // 2] if n % 2 == 1 else round((vals[n // 2 - 1] + vals[n // 2]) / 2)
@@ -877,9 +986,10 @@ def generate_plan_for_date():
         return jsonify({"message": f"Ollama 不可用：{model_msg}"}), 503
 
     rag_samples = load_rag_samples(username)
+    knowledge_records = load_knowledge_records()
     rag_examples_by_task: dict[str, list[dict[str, Any]]] = {}
     for task in tasks:
-        rag_examples_by_task[task["id"]] = compute_rag_examples(task, rag_samples)
+        rag_examples_by_task[task["id"]] = compute_rag_examples(task, rag_samples, knowledge_records)
 
     prompt_context = build_llm_prompt_payload(tasks, availability, planning_start, planning_end, rag_examples_by_task)
     llm_payload = {

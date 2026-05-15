@@ -11,6 +11,9 @@
     <section class="page page-active" data-page="home">
       <header class="page-header">
         <img id="homeTitleImage" class="home-title-image" src="./assets/title-j-simulator.png" alt="J人模拟器">
+        <button id="homeAccountBtn" class="account-icon-btn" type="button" aria-label="账号">
+          <span class="account-glyph" aria-hidden="true"></span>
+        </button>
       </header>
       <div class="card">
         <h2>专注</h2>
@@ -21,7 +24,7 @@
         </div>
       </div>
       <div class="card">
-        <h2>常用入口（占位）</h2>
+        <h2>常用入口</h2>
         <div class="icon-grid">
           <div class="icon-item"><span>📅</span><p>日历</p></div>
           <div class="icon-item"><span>⏱️</span><p>专注</p></div>
@@ -29,20 +32,6 @@
           <div class="icon-item"><span>📊</span><p>统计</p></div>
           <div class="icon-item"><span>🎯</span><p>目标</p></div>
           <div class="icon-item"><span>🧩</span><p>更多</p></div>
-        </div>
-
-        <div class="auth-box">
-          <h3>账号登录</h3>
-          <form id="authForm" class="auth-form">
-            <input id="authUsername" type="text" placeholder="用户名（3-32位）" autocomplete="username" required>
-            <input id="authPassword" type="password" placeholder="密码（至少6位）" autocomplete="current-password" required>
-            <div class="auth-actions">
-              <button id="loginBtn" class="btn small primary" type="submit">登录</button>
-              <button id="registerBtn" class="btn small" type="button">注册</button>
-              <button id="logoutBtn" class="btn small" type="button">退出</button>
-            </div>
-          </form>
-          <p id="authStatus" class="hint">未登录</p>
         </div>
       </div>
     </section>
@@ -67,7 +56,7 @@
           </button>
           <button id="planInfoBtn" class="btn info-btn" type="button" title="查看计划详情" aria-label="查看计划详情">i</button>
         </div>
-        <p id="timelineHint" class="hint">双击任务块可标记完成并从时间轴移除。</p>
+        <p id="timelineHint" class="hint">单击时间轴方块可编辑名称、时间、描述或删除。</p>
       </div>
       <div class="card timeline-card">
         <div id="timelineHeader" class="timeline-header"></div>
@@ -76,10 +65,21 @@
     </section>
 
     <section class="page" data-page="plan">
-      <header class="page-header">
+      <header class="page-header page-header-row">
         <h1>计划列表</h1>
+        <button id="openTaskCreateBtn" class="icon-action-btn" type="button" aria-label="添加任务">
+          <svg class="edit-svg" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M7 25h6l13-13a4 4 0 0 0-6-6L7 19v6z"></path>
+            <path d="M18 8l6 6"></path>
+            <path d="M6 26h20"></path>
+          </svg>
+        </button>
       </header>
-      <div class="card">
+      <div id="taskCreateView" class="card" hidden>
+        <div class="settings-detail-head">
+          <button id="backTaskListBtn" class="btn small" type="button">‹ 返回</button>
+          <h2>创建新任务</h2>
+        </div>
         <form id="taskForm" class="form-grid">
           <label>
             任务名称
@@ -136,7 +136,7 @@
           <button type="submit" class="btn primary">添加任务</button>
         </form>
       </div>
-      <div class="card">
+      <div id="taskListView" class="card">
         <ul id="planList" class="list"></ul>
       </div>
     </section>
@@ -152,6 +152,20 @@
             <span>
               <strong>空闲时间段设置</strong>
               <span>管理每周可以安排学习任务的时间。</span>
+            </span>
+            <span class="settings-entry-arrow">›</span>
+          </button>
+          <button id="openAccountSettingsBtn" class="settings-entry" type="button">
+            <span>
+              <strong>账号</strong>
+              <span>登录、注册或退出当前账号。</span>
+            </span>
+            <span class="settings-entry-arrow">›</span>
+          </button>
+          <button id="openFocusSettingsPageBtn" class="settings-entry" type="button">
+            <span>
+              <strong>专注</strong>
+              <span>设置专注界面的时间显示方式。</span>
             </span>
             <span class="settings-entry-arrow">›</span>
           </button>
@@ -172,6 +186,59 @@
           <button id="saveAvailabilityBtn" type="submit" class="btn primary">保存空闲时段</button>
         </form>
       </div>
+      <div id="accountSettings" class="settings-view card" hidden>
+        <div class="settings-detail-head">
+          <button id="backAccountSettingsBtn" class="btn small" type="button">‹ 返回</button>
+          <h2>账号</h2>
+        </div>
+        <div id="accountProfileView" class="account-profile" hidden>
+          <div class="account-profile-head">
+            <img id="accountAvatarPreview" class="account-avatar" src="./assets/default-avatar.png" alt="头像">
+            <div>
+              <strong id="accountDisplayName">未登录</strong>
+              <p id="accountUsernameText" class="hint">--</p>
+            </div>
+          </div>
+          <label>
+            显示名称
+            <input id="profileNameInput" type="text" placeholder="例如：刘知行">
+          </label>
+          <label>
+            头像路径
+            <input id="profileAvatarInput" type="text" placeholder="./assets/default-avatar.png">
+          </label>
+          <p class="hint">头像图片建议放在 v0_demo/assets/ 目录，例如 ./assets/default-avatar.png。</p>
+          <div class="auth-actions">
+            <button id="saveProfileBtn" class="btn primary" type="button">保存资料</button>
+            <button id="profileLogoutBtn" class="btn danger" type="button">退出账号</button>
+          </div>
+        </div>
+        <form id="authForm" class="auth-form">
+          <input id="authUsername" type="text" placeholder="用户名（3-32位）" autocomplete="username" required>
+          <input id="authPassword" type="password" placeholder="密码（至少6位）" autocomplete="current-password" required>
+          <div class="auth-actions">
+            <button id="loginBtn" class="btn small primary" type="submit">登录</button>
+            <button id="registerBtn" class="btn small" type="button">注册</button>
+            <button id="logoutBtn" class="btn small" type="button">退出</button>
+          </div>
+        </form>
+        <p id="authStatus" class="hint">未登录</p>
+      </div>
+      <div id="focusSettingsPage" class="settings-view card" hidden>
+        <div class="settings-detail-head">
+          <button id="backFocusSettingsBtn" class="btn small" type="button">‹ 返回</button>
+          <h2>专注</h2>
+        </div>
+        <p class="hint">设置专注界面中央大字显示内容。</p>
+        <label class="radio-row">
+          <input type="radio" name="focusDisplayMode" value="elapsed">
+          显示计时器累积时长
+        </label>
+        <label class="radio-row">
+          <input type="radio" name="focusDisplayMode" value="clock">
+          显示实时时间
+        </label>
+      </div>
     </section>
 
     <div id="feedbackBox" class="feedback" aria-live="polite"></div>
@@ -190,7 +257,9 @@
     </div>
   </section>
 
-  <button id="focusBubble" class="focus-bubble hidden" type="button" aria-label="恢复专注界面">专</button>
+  <button id="focusBubble" class="focus-bubble hidden" type="button" aria-label="恢复专注界面">
+    <span class="focus-bubble-icon" aria-hidden="true"></span>
+  </button>
 
   <div id="focusSettingsModal" class="modal hidden">
     <div class="modal-panel">
@@ -207,6 +276,57 @@
           <input type="radio" name="focusDisplayMode" value="clock">
           显示实时时间
         </label>
+      </div>
+    </div>
+  </div>
+
+  <div id="focusContentModal" class="modal focus-modal hidden">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>专注内容</h3>
+        <button id="closeFocusContentBtn" class="btn small" type="button">关闭</button>
+      </div>
+      <div class="modal-body">
+        <label>
+          内容
+          <input id="focusContentInput" type="text" placeholder="例如：数学卷选择题">
+        </label>
+        <div class="modal-actions">
+          <button id="saveFocusContentBtn" class="btn primary" type="button">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="timelineEditModal" class="modal hidden">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>编辑时间段</h3>
+        <button id="closeTimelineEditBtn" class="btn small" type="button">关闭</button>
+      </div>
+      <div class="modal-body">
+        <label>
+          名称
+          <input id="timelineEditTitleInput" type="text" placeholder="时间段名称">
+        </label>
+        <div class="time-edit-row">
+          <label>
+            开始
+            <input id="timelineEditStartInput" type="text" list="timeOptions" placeholder="HH:MM">
+          </label>
+          <label>
+            结束
+            <input id="timelineEditEndInput" type="text" list="timeOptions" placeholder="HH:MM">
+          </label>
+        </div>
+        <label>
+          描述
+          <textarea id="timelineEditDescriptionInput" rows="3" placeholder="默认没有内容"></textarea>
+        </label>
+        <div class="modal-actions danger-row">
+          <button id="deleteTimelineBlockBtn" class="btn danger" type="button">删除</button>
+          <button id="saveTimelineBlockBtn" class="btn primary" type="button">保存</button>
+        </div>
       </div>
     </div>
   </div>

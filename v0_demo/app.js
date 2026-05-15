@@ -56,6 +56,8 @@ const state = {
   checkins: [],
   planner: "none",
   activePage: "home",
+  profileName: localStorage.getItem("profile_name") || "",
+  profileAvatar: localStorage.getItem("profile_avatar") || "./assets/default-avatar.png",
   selectedDate: formatDate(new Date()),
   timerSeconds: 0,
   timerRunning: false,
@@ -66,6 +68,8 @@ const state = {
   focusDisplayMode: localStorage.getItem("focus_display_mode") || "elapsed",
   focusContent: localStorage.getItem("focus_content") || "",
   focusBlocks: loadFocusBlocks(),
+  timelineBlockEdits: loadTimelineBlockEdits(),
+  editingTimelineBlock: null,
   focusBubbleDrag: null,
   feedbackTimer: null,
   weeklyAvailability: Object.fromEntries(WEEK_KEYS.map((k) => [k, []])),
@@ -78,7 +82,12 @@ const ui = {
   timerDisplay: document.getElementById("timerDisplay"),
   timerToggleBtn: document.getElementById("timerToggleBtn"),
   timerResetBtn: document.getElementById("timerResetBtn"),
+  homeAccountBtn: document.getElementById("homeAccountBtn"),
   taskForm: document.getElementById("taskForm"),
+  taskCreateView: document.getElementById("taskCreateView"),
+  taskListView: document.getElementById("taskListView"),
+  openTaskCreateBtn: document.getElementById("openTaskCreateBtn"),
+  backTaskListBtn: document.getElementById("backTaskListBtn"),
   titleInput: document.getElementById("titleInput"),
   deadlineInput: document.getElementById("deadlineInput"),
   subjectInput: document.getElementById("subjectInput"),
@@ -96,8 +105,14 @@ const ui = {
   availabilityEditor: document.getElementById("availabilityEditor"),
   settingsHome: document.getElementById("settingsHome"),
   availabilitySettings: document.getElementById("availabilitySettings"),
+  accountSettings: document.getElementById("accountSettings"),
+  focusSettingsPage: document.getElementById("focusSettingsPage"),
   openAvailabilitySettingsBtn: document.getElementById("openAvailabilitySettingsBtn"),
+  openAccountSettingsBtn: document.getElementById("openAccountSettingsBtn"),
+  openFocusSettingsPageBtn: document.getElementById("openFocusSettingsPageBtn"),
   backSettingsBtn: document.getElementById("backSettingsBtn"),
+  backAccountSettingsBtn: document.getElementById("backAccountSettingsBtn"),
+  backFocusSettingsBtn: document.getElementById("backFocusSettingsBtn"),
   copyWeekdaysBtn: document.getElementById("copyWeekdaysBtn"),
   copyAllDaysBtn: document.getElementById("copyAllDaysBtn"),
   timeOptions: document.getElementById("timeOptions"),
@@ -120,8 +135,28 @@ const ui = {
   focusBubble: document.getElementById("focusBubble"),
   focusSettingsModal: document.getElementById("focusSettingsModal"),
   closeFocusSettingsBtn: document.getElementById("closeFocusSettingsBtn"),
+  focusContentModal: document.getElementById("focusContentModal"),
+  closeFocusContentBtn: document.getElementById("closeFocusContentBtn"),
+  focusContentInput: document.getElementById("focusContentInput"),
+  saveFocusContentBtn: document.getElementById("saveFocusContentBtn"),
   focusDisplayModeInputs: Array.from(document.querySelectorAll("input[name='focusDisplayMode']")),
+  timelineEditModal: document.getElementById("timelineEditModal"),
+  closeTimelineEditBtn: document.getElementById("closeTimelineEditBtn"),
+  timelineEditTitleInput: document.getElementById("timelineEditTitleInput"),
+  timelineEditStartInput: document.getElementById("timelineEditStartInput"),
+  timelineEditEndInput: document.getElementById("timelineEditEndInput"),
+  timelineEditDescriptionInput: document.getElementById("timelineEditDescriptionInput"),
+  deleteTimelineBlockBtn: document.getElementById("deleteTimelineBlockBtn"),
+  saveTimelineBlockBtn: document.getElementById("saveTimelineBlockBtn"),
   authForm: document.getElementById("authForm"),
+  accountProfileView: document.getElementById("accountProfileView"),
+  accountAvatarPreview: document.getElementById("accountAvatarPreview"),
+  accountDisplayName: document.getElementById("accountDisplayName"),
+  accountUsernameText: document.getElementById("accountUsernameText"),
+  profileNameInput: document.getElementById("profileNameInput"),
+  profileAvatarInput: document.getElementById("profileAvatarInput"),
+  saveProfileBtn: document.getElementById("saveProfileBtn"),
+  profileLogoutBtn: document.getElementById("profileLogoutBtn"),
   authUsername: document.getElementById("authUsername"),
   authPassword: document.getElementById("authPassword"),
   registerBtn: document.getElementById("registerBtn"),
@@ -132,8 +167,18 @@ const ui = {
 bootstrap().catch((error) => setFeedback(`初始化失败：${error.message}`, true));
 
 ui.navItems.forEach((item) => item.addEventListener("click", () => switchPage(item.dataset.nav)));
+ui.openTaskCreateBtn.addEventListener("click", () => showTaskCreateView());
+ui.backTaskListBtn.addEventListener("click", () => showTaskListView());
+ui.homeAccountBtn.addEventListener("click", () => {
+  switchPage("settings");
+  showAccountSettings();
+});
 ui.openAvailabilitySettingsBtn.addEventListener("click", () => showSettingsAvailability());
+ui.openAccountSettingsBtn.addEventListener("click", () => showAccountSettings());
+ui.openFocusSettingsPageBtn.addEventListener("click", () => showFocusSettingsPage());
 ui.backSettingsBtn.addEventListener("click", () => showSettingsHome());
+ui.backAccountSettingsBtn.addEventListener("click", () => showSettingsHome());
+ui.backFocusSettingsBtn.addEventListener("click", () => showSettingsHome());
 ui.prevDayBtn.addEventListener("click", () => changeSelectedDate(-1));
 ui.nextDayBtn.addEventListener("click", () => changeSelectedDate(1));
 ui.weekStrip.addEventListener("click", async (event) => {
@@ -190,12 +235,25 @@ ui.focusDisplayModeInputs.forEach((input) => {
   });
 });
 ui.focusContentBtn.addEventListener("click", () => editFocusContent());
+ui.closeFocusContentBtn.addEventListener("click", () => closeFocusContentModal());
+ui.saveFocusContentBtn.addEventListener("click", () => saveFocusContentFromModal());
+ui.focusContentModal.addEventListener("click", (event) => {
+  if (event.target === ui.focusContentModal) closeFocusContentModal();
+});
 ui.focusPauseBtn.addEventListener("click", () => toggleFocusPause());
 ui.focusEndBtn.addEventListener("click", () => endFocusSession());
 ui.focusBubble.addEventListener("pointerdown", startFocusBubbleDrag);
 ui.focusBubble.addEventListener("pointermove", moveFocusBubble);
 ui.focusBubble.addEventListener("pointerup", endFocusBubbleDrag);
 ui.focusBubble.addEventListener("pointercancel", endFocusBubbleDrag);
+ui.closeTimelineEditBtn.addEventListener("click", () => closeTimelineBlockEditor());
+ui.timelineEditModal.addEventListener("click", (event) => {
+  if (event.target === ui.timelineEditModal) closeTimelineBlockEditor();
+});
+ui.saveTimelineBlockBtn.addEventListener("click", () => saveTimelineBlockEdit());
+ui.deleteTimelineBlockBtn.addEventListener("click", () => deleteTimelineBlockEdit());
+ui.saveProfileBtn.addEventListener("click", () => saveProfileSettings());
+ui.profileLogoutBtn.addEventListener("click", async () => logout());
 
 ui.taskForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -230,6 +288,7 @@ ui.taskForm.addEventListener("submit", async (event) => {
     await refreshSelectedDatePlan();
     renderTimeline();
     renderPlanList();
+    showTaskListView();
     setFeedback("任务已添加。");
   } catch (error) {
     setFeedback(`添加任务失败：${error.message}`, true);
@@ -281,24 +340,10 @@ ui.generateBtn.addEventListener("click", async () => {
   await generatePlanForToday();
 });
 
-ui.timelineCanvas.addEventListener("dblclick", async (event) => {
-  if (!state.currentUser) return;
-  const block = event.target.closest(".timeline-block");
-  if (!block) return;
-  await completeTaskFromBlock(block.dataset.taskId);
-});
 ui.timelineCanvas.addEventListener("click", async (event) => {
-  if (!state.currentUser) return;
   const block = event.target.closest(".timeline-block");
   if (!block) return;
-  const now = Date.now();
-  const taskId = block.dataset.taskId;
-  if (state.lastTap.taskId === taskId && now - state.lastTap.ts <= 350) {
-    state.lastTap = { taskId: "", ts: 0 };
-    await completeTaskFromBlock(taskId);
-  } else {
-    state.lastTap = { taskId, ts: now };
-  }
+  openTimelineBlockEditor(block);
 });
 
 ui.planList.addEventListener("click", async (event) => {
@@ -321,6 +366,13 @@ ui.planList.addEventListener("click", async (event) => {
 
 function renderAuthStatus() {
   ui.authStatus.textContent = state.currentUser ? `当前账号：${state.currentUser}` : "未登录";
+  ui.authForm.hidden = !!state.currentUser;
+  ui.accountProfileView.hidden = !state.currentUser;
+  ui.accountDisplayName.textContent = state.profileName || state.currentUser || "未登录";
+  ui.accountUsernameText.textContent = state.currentUser ? `用户名：${state.currentUser}` : "--";
+  ui.profileNameInput.value = state.profileName;
+  ui.profileAvatarInput.value = state.profileAvatar;
+  ui.accountAvatarPreview.src = state.profileAvatar || "./assets/default-avatar.png";
   const disabled = !state.currentUser;
   [ui.taskForm, ui.generateBtn, ui.availabilityForm, ui.planInfoBtn].forEach((el) => {
     if (!el) return;
@@ -334,6 +386,15 @@ function renderAuthStatus() {
     el.disabled = disabled;
   });
   ui.logoutBtn.disabled = !state.currentUser;
+}
+
+function saveProfileSettings() {
+  state.profileName = ui.profileNameInput.value.trim();
+  state.profileAvatar = ui.profileAvatarInput.value.trim() || "./assets/default-avatar.png";
+  localStorage.setItem("profile_name", state.profileName);
+  localStorage.setItem("profile_avatar", state.profileAvatar);
+  renderAuthStatus();
+  setFeedback("账号资料已保存。");
 }
 
 function clearAppData() {
@@ -539,17 +600,49 @@ function switchPage(pageName) {
   ui.pages.forEach((page) => page.classList.toggle("page-active", page.dataset.page === pageName));
   ui.navItems.forEach((item) => item.classList.toggle("nav-active", item.dataset.nav === pageName));
   if (pageName === "settings") showSettingsHome();
+  if (pageName === "plan") showTaskListView();
+}
+
+function showTaskCreateView() {
+  ui.taskCreateView.hidden = false;
+  ui.taskListView.hidden = true;
+  ui.openTaskCreateBtn.hidden = true;
+}
+
+function showTaskListView() {
+  ui.taskCreateView.hidden = true;
+  ui.taskListView.hidden = false;
+  ui.openTaskCreateBtn.hidden = false;
 }
 
 function showSettingsHome() {
   ui.settingsHome.hidden = false;
   ui.availabilitySettings.hidden = true;
+  ui.accountSettings.hidden = true;
+  ui.focusSettingsPage.hidden = true;
 }
 
 function showSettingsAvailability() {
   ui.settingsHome.hidden = true;
   ui.availabilitySettings.hidden = false;
+  ui.accountSettings.hidden = true;
+  ui.focusSettingsPage.hidden = true;
   renderAvailabilityEditor();
+}
+
+function showAccountSettings() {
+  ui.settingsHome.hidden = true;
+  ui.availabilitySettings.hidden = true;
+  ui.accountSettings.hidden = false;
+  ui.focusSettingsPage.hidden = true;
+}
+
+function showFocusSettingsPage() {
+  ui.settingsHome.hidden = true;
+  ui.availabilitySettings.hidden = true;
+  ui.accountSettings.hidden = true;
+  ui.focusSettingsPage.hidden = false;
+  syncFocusSettingsInputs();
 }
 
 function buildTimeOptions() {
@@ -662,11 +755,20 @@ function toggleFocusPause() {
 }
 
 function editFocusContent() {
-  const nextContent = window.prompt("请输入专注内容", state.focusContent || "");
-  if (nextContent === null) return;
-  state.focusContent = nextContent.trim();
+  ui.focusContentInput.value = state.focusContent;
+  ui.focusContentModal.classList.remove("hidden");
+  ui.focusContentInput.focus();
+}
+
+function closeFocusContentModal() {
+  ui.focusContentModal.classList.add("hidden");
+}
+
+function saveFocusContentFromModal() {
+  state.focusContent = ui.focusContentInput.value.trim();
   localStorage.setItem("focus_content", state.focusContent);
   renderFocusContent();
+  closeFocusContentModal();
 }
 
 function openFocusSettings() {
@@ -929,7 +1031,7 @@ function collectAvailabilityPayload() {
 function renderTimeline() {
   const plan = state.selectedPlan;
   const blocks = plan?.scheduledBlocks || [];
-  ui.timelineHeader.textContent = `${state.selectedDate} 时间轴（双击任务块完成）`;
+  ui.timelineHeader.textContent = `${state.selectedDate} 时间轴（点击方块可编辑）`;
   ui.timelineCanvas.innerHTML = "";
   const startHour = 6;
   const endHour = 24;
@@ -949,38 +1051,92 @@ function renderTimeline() {
     ui.timelineCanvas.appendChild(label);
   }
 
+  const renderBlocks = [];
   blocks.forEach((block) => {
     const task = state.tasks.find((t) => t.id === block.taskId);
     if (!task || task.status === "done") return;
-    const blockTop = (block.startMinute - startHour * 60) * pxPerMinute;
-    const blockHeight = Math.max((block.endMinute - block.startMinute) * pxPerMinute, 20);
-    const el = document.createElement("div");
-    el.className = "timeline-block";
-    el.dataset.taskId = block.taskId;
-    el.style.top = `${Math.max(0, blockTop)}px`;
-    el.style.height = `${blockHeight}px`;
-    el.innerHTML = `
-      <p>${escapeHtml(block.title || task.title)}</p>
-      <p class="ddl">${escapeHtml(minutesToHHMM(block.startMinute))}-${escapeHtml(minutesToHHMM(block.endMinute))} · DDL: ${escapeHtml(block.deadline || task.deadline)}</p>
-    `;
-    ui.timelineCanvas.appendChild(el);
+    const key = getPlanBlockKey(block);
+    const edit = state.timelineBlockEdits[key] || {};
+    if (edit.deleted) return;
+    const startMinute = Number.isFinite(edit.startMinute) ? edit.startMinute : block.startMinute;
+    const endMinute = Number.isFinite(edit.endMinute) ? edit.endMinute : block.endMinute;
+    const title = edit.title || block.title || task.title;
+    const description = edit.description || "";
+    renderBlocks.push({
+      kind: "plan",
+      key,
+      taskId: block.taskId,
+      startMinute,
+      endMinute,
+      html: `
+      <p>${escapeHtml(title)}</p>
+      <p class="ddl">${escapeHtml(minutesToHHMM(startMinute))}-${escapeHtml(minutesToHHMM(endMinute))} · DDL: ${escapeHtml(block.deadline || task.deadline)}</p>
+      ${description ? `<p class="desc">${escapeHtml(description)}</p>` : ""}
+    `,
+    });
   });
 
   state.focusBlocks
     .filter((block) => block.date === state.selectedDate)
     .forEach((block) => {
-      const blockTop = (block.startMinute - startHour * 60) * pxPerMinute;
-      const blockHeight = Math.max((block.endMinute - block.startMinute) * pxPerMinute, 20);
-      const el = document.createElement("div");
-      el.className = "timeline-block focus-block";
-      el.style.top = `${Math.max(0, blockTop)}px`;
-      el.style.height = `${blockHeight}px`;
-      el.innerHTML = `
+      renderBlocks.push({
+        kind: "focus",
+        id: block.id,
+        startMinute: block.startMinute,
+        endMinute: block.endMinute,
+        extraClass: "focus-block",
+        html: `
         <p>${escapeHtml(block.title)}</p>
         <p class="ddl">${escapeHtml(minutesToHHMM(block.startMinute))}-${escapeHtml(minutesToHHMM(block.endMinute))} · 专注</p>
-      `;
-      ui.timelineCanvas.appendChild(el);
+        ${block.description ? `<p class="desc">${escapeHtml(block.description)}</p>` : ""}
+      `,
+      });
     });
+
+  layoutTimelineBlocks(renderBlocks).forEach((block) => {
+    const blockTop = (block.startMinute - startHour * 60) * pxPerMinute;
+    const blockHeight = Math.max((block.endMinute - block.startMinute) * pxPerMinute, 20);
+    const el = document.createElement("div");
+    el.className = `timeline-block ${block.extraClass || ""}`;
+    el.dataset.blockKind = block.kind;
+    if (block.key) el.dataset.blockKey = block.key;
+    if (block.taskId) el.dataset.taskId = block.taskId;
+    if (block.id) el.dataset.blockId = block.id;
+    el.style.top = `${Math.max(0, blockTop)}px`;
+    el.style.height = `${blockHeight}px`;
+    el.style.left = `calc(58px + ${block.column * block.columnWidth}%)`;
+    el.style.right = "auto";
+    el.style.width = `calc(${block.columnWidth}% - 8px)`;
+    el.innerHTML = block.html;
+    ui.timelineCanvas.appendChild(el);
+  });
+}
+
+function layoutTimelineBlocks(blocks) {
+  const sorted = [...blocks].sort((a, b) => a.startMinute - b.startMinute || a.endMinute - b.endMinute);
+  const active = [];
+  sorted.forEach((block) => {
+    for (let i = active.length - 1; i >= 0; i -= 1) {
+      if (active[i].endMinute <= block.startMinute) active.splice(i, 1);
+    }
+    const used = new Set(active.map((item) => item.column));
+    let column = 0;
+    while (used.has(column)) column += 1;
+    block.column = column;
+    active.push(block);
+    const groupSize = Math.max(...active.map((item) => item.column)) + 1;
+    active.forEach((item) => {
+      item.groupSize = Math.max(item.groupSize || 1, groupSize);
+    });
+  });
+  return sorted.map((block) => ({
+    ...block,
+    columnWidth: 86 / Math.max(1, block.groupSize || 1),
+  }));
+}
+
+function getPlanBlockKey(block) {
+  return `plan:${state.selectedDate}:${block.taskId}:${block.startMinute}:${block.endMinute}`;
 }
 
 function loadFocusBlocks() {
@@ -997,6 +1153,20 @@ function saveFocusBlocks() {
   localStorage.setItem("focus_blocks", JSON.stringify(state.focusBlocks));
 }
 
+function loadTimelineBlockEdits() {
+  try {
+    const raw = localStorage.getItem("timeline_block_edits");
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveTimelineBlockEdits() {
+  localStorage.setItem("timeline_block_edits", JSON.stringify(state.timelineBlockEdits));
+}
+
 function addFocusTimelineBlock(startedAt, elapsedMs, title) {
   const startMinute = startedAt.getHours() * 60 + startedAt.getMinutes();
   const durationMinutes = Math.max(1, Math.ceil(elapsedMs / 60000));
@@ -1007,12 +1177,101 @@ function addFocusTimelineBlock(startedAt, elapsedMs, title) {
     startMinute,
     endMinute,
     title,
+    description: "",
   };
   state.focusBlocks.push(block);
   saveFocusBlocks();
   state.selectedDate = block.date;
   renderDateSwitcher();
 }
+
+function openTimelineBlockEditor(element) {
+  const kind = element.dataset.blockKind;
+  let data = null;
+  if (kind === "focus") {
+    const block = state.focusBlocks.find((item) => item.id === element.dataset.blockId);
+    if (!block) return;
+    data = { kind, id: block.id, title: block.title, description: block.description || "", startMinute: block.startMinute, endMinute: block.endMinute };
+  } else {
+    const key = element.dataset.blockKey;
+    const block = (state.selectedPlan?.scheduledBlocks || []).find((item) => getPlanBlockKey(item) === key);
+    if (!block) return;
+    const task = state.tasks.find((item) => item.id === block.taskId);
+    const edit = state.timelineBlockEdits[key] || {};
+    data = {
+      kind: "plan",
+      key,
+      title: edit.title || block.title || task?.title || "",
+      description: edit.description || "",
+      startMinute: Number.isFinite(edit.startMinute) ? edit.startMinute : block.startMinute,
+      endMinute: Number.isFinite(edit.endMinute) ? edit.endMinute : block.endMinute,
+    };
+  }
+  state.editingTimelineBlock = data;
+  ui.timelineEditTitleInput.value = data.title;
+  ui.timelineEditStartInput.value = minutesToHHMM(data.startMinute);
+  ui.timelineEditEndInput.value = minutesToHHMM(data.endMinute);
+  ui.timelineEditDescriptionInput.value = data.description || "";
+  ui.timelineEditModal.classList.remove("hidden");
+}
+
+function closeTimelineBlockEditor() {
+  ui.timelineEditModal.classList.add("hidden");
+  state.editingTimelineBlock = null;
+}
+
+function readTimelineEditForm() {
+  const title = ui.timelineEditTitleInput.value.trim() || "未命名";
+  const description = ui.timelineEditDescriptionInput.value.trim();
+  const start = normalizeTimeText(ui.timelineEditStartInput.value);
+  const end = normalizeTimeText(ui.timelineEditEndInput.value);
+  const startMinute = hhmmToMinutes(start);
+  const endMinute = hhmmToMinutes(end);
+  if (endMinute <= startMinute) throw new Error("结束时间必须晚于开始时间");
+  return { title, description, startMinute, endMinute };
+}
+
+function saveTimelineBlockEdit() {
+  if (!state.editingTimelineBlock) return;
+  try {
+    const next = readTimelineEditForm();
+    if (state.editingTimelineBlock.kind === "focus") {
+      const block = state.focusBlocks.find((item) => item.id === state.editingTimelineBlock.id);
+      if (block) Object.assign(block, next);
+      saveFocusBlocks();
+    } else {
+      state.timelineBlockEdits[state.editingTimelineBlock.key] = {
+        ...(state.timelineBlockEdits[state.editingTimelineBlock.key] || {}),
+        ...next,
+        deleted: false,
+      };
+      saveTimelineBlockEdits();
+    }
+    closeTimelineBlockEditor();
+    renderTimeline();
+    setFeedback("时间段已更新。");
+  } catch (error) {
+    setFeedback(`保存失败：${error.message}`, true);
+  }
+}
+
+function deleteTimelineBlockEdit() {
+  if (!state.editingTimelineBlock) return;
+  if (state.editingTimelineBlock.kind === "focus") {
+    state.focusBlocks = state.focusBlocks.filter((item) => item.id !== state.editingTimelineBlock.id);
+    saveFocusBlocks();
+  } else {
+    state.timelineBlockEdits[state.editingTimelineBlock.key] = {
+      ...(state.timelineBlockEdits[state.editingTimelineBlock.key] || {}),
+      deleted: true,
+    };
+    saveTimelineBlockEdits();
+  }
+  closeTimelineBlockEditor();
+  renderTimeline();
+  setFeedback("时间段已删除。");
+}
+
 
 function renderPlanList() {
   ui.planList.innerHTML = "";
