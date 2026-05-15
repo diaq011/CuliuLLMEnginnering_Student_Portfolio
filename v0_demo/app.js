@@ -618,6 +618,12 @@ function stopFocusTickerIfIdle() {
 function openFocusOverlay(shouldStart) {
   ui.focusOverlay.classList.remove("hidden");
   ui.focusBubble.classList.add("hidden");
+  ui.focusContentBtn.disabled = true;
+  ui.focusEndBtn.disabled = true;
+  window.setTimeout(() => {
+    ui.focusContentBtn.disabled = false;
+    ui.focusEndBtn.disabled = false;
+  }, 500);
   if (shouldStart && !state.timerRunning) {
     if (!state.focusBlockStartAt) state.focusBlockStartAt = new Date().toISOString();
     state.timerRunning = true;
