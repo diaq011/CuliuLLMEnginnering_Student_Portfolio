@@ -50,6 +50,10 @@ const ui = {
   feedbackBox: document.getElementById("feedbackBox"),
   availabilityForm: document.getElementById("availabilityForm"),
   availabilityEditor: document.getElementById("availabilityEditor"),
+  settingsHome: document.getElementById("settingsHome"),
+  availabilitySettings: document.getElementById("availabilitySettings"),
+  openAvailabilitySettingsBtn: document.getElementById("openAvailabilitySettingsBtn"),
+  backSettingsBtn: document.getElementById("backSettingsBtn"),
   copyWeekdaysBtn: document.getElementById("copyWeekdaysBtn"),
   copyAllDaysBtn: document.getElementById("copyAllDaysBtn"),
   timeOptions: document.getElementById("timeOptions"),
@@ -73,6 +77,8 @@ const ui = {
 bootstrap().catch((error) => setFeedback(`初始化失败：${error.message}`, true));
 
 ui.navItems.forEach((item) => item.addEventListener("click", () => switchPage(item.dataset.nav)));
+ui.openAvailabilitySettingsBtn.addEventListener("click", () => showSettingsAvailability());
+ui.backSettingsBtn.addEventListener("click", () => showSettingsHome());
 ui.prevDayBtn.addEventListener("click", () => changeSelectedDate(-1));
 ui.nextDayBtn.addEventListener("click", () => changeSelectedDate(1));
 ui.weekStrip.addEventListener("click", async (event) => {
@@ -454,6 +460,17 @@ function switchPage(pageName) {
   state.activePage = pageName;
   ui.pages.forEach((page) => page.classList.toggle("page-active", page.dataset.page === pageName));
   ui.navItems.forEach((item) => item.classList.toggle("nav-active", item.dataset.nav === pageName));
+  if (pageName === "settings") showSettingsHome();
+}
+
+function showSettingsHome() {
+  ui.settingsHome.hidden = false;
+  ui.availabilitySettings.hidden = true;
+}
+
+function showSettingsAvailability() {
+  ui.settingsHome.hidden = true;
+  ui.availabilitySettings.hidden = false;
 }
 
 function buildTimeOptions() {
@@ -543,23 +560,26 @@ function renderAvailabilityEditor() {
     const slotsWrap = document.createElement("div");
     slotsWrap.className = "slots-wrap";
     const ranges = state.weeklyAvailability[day] || [];
+    const visibleRanges = ranges.length > 0 ? ranges : [{ start: "", end: "", isDraft: true }];
+    visibleRanges.forEach((slot, idx) => {
+      const slotRow = document.createElement("div");
+      slotRow.className = "slot-row";
+      const removeButton = slot.isDraft
+        ? ""
+        : `<button class="btn small" type="button" data-remove-day="${day}" data-remove-index="${idx}">删除</button>`;
+      slotRow.innerHTML = `
+        <input class="time-input" data-day="${day}" data-index="${idx}" data-kind="start" list="timeOptions" value="${escapeHtml(slot.start)}" placeholder="开始时间">
+        <span class="slot-sep">-</span>
+        <input class="time-input" data-day="${day}" data-index="${idx}" data-kind="end" list="timeOptions" value="${escapeHtml(slot.end)}" placeholder="结束时间">
+        ${removeButton}
+      `;
+      slotsWrap.appendChild(slotRow);
+    });
     if (ranges.length === 0) {
       const empty = document.createElement("p");
       empty.className = "hint";
-      empty.textContent = "未设置";
+      empty.textContent = "留空则不保存该日时段，也可以直接输入后保存。";
       slotsWrap.appendChild(empty);
-    } else {
-      ranges.forEach((slot, idx) => {
-        const slotRow = document.createElement("div");
-        slotRow.className = "slot-row";
-        slotRow.innerHTML = `
-          <input class="time-input" data-day="${day}" data-index="${idx}" data-kind="start" list="timeOptions" value="${escapeHtml(slot.start)}" placeholder="开始时间">
-          <span class="slot-sep">-</span>
-          <input class="time-input" data-day="${day}" data-index="${idx}" data-kind="end" list="timeOptions" value="${escapeHtml(slot.end)}" placeholder="结束时间">
-          <button class="btn small" type="button" data-remove-day="${day}" data-remove-index="${idx}">删除</button>
-        `;
-        slotsWrap.appendChild(slotRow);
-      });
     }
     row.appendChild(slotsWrap);
     ui.availabilityEditor.appendChild(row);
@@ -633,6 +653,10 @@ function collectAvailabilityPayload() {
       .sort((a, b) => a - b)
       .map((idx) => rows[idx]);
     const daySlots = slotEntries.map((entry) => {
+      const startRaw = entry.start?.value.trim() || "";
+      const endRaw = entry.end?.value.trim() || "";
+      if (!startRaw && !endRaw) return null;
+      if (!startRaw || !endRaw) throw new Error(`${WEEK_LABELS[day]}存在未填完整的时间段`);
       const startNorm = normalizeTimeText(entry.start.value);
       const endNorm = normalizeTimeText(entry.end.value);
       entry.start.value = startNorm;
@@ -641,7 +665,7 @@ function collectAvailabilityPayload() {
       const e = hhmmToMinutes(endNorm);
       if (e <= s) throw new Error(`${WEEK_LABELS[day]}存在结束时间早于开始时间`);
       return { start: startNorm, end: endNorm, s, e };
-    });
+    }).filter(Boolean);
     daySlots.sort((a, b) => a.s - b.s);
     for (let i = 1; i < daySlots.length; i += 1) {
       if (daySlots[i].s < daySlots[i - 1].e) throw new Error(`${WEEK_LABELS[day]}存在重叠时段`);
@@ -730,7 +754,7 @@ function setFeedback(message, isError = false) {
   ui.feedbackBox.textContent = message;
   ui.feedbackBox.classList.remove("hidden");
   ui.feedbackBox.style.borderColor = isError ? "#f2b8b5" : "#c7d6e9";
-  ui.feedbackBox.style.background = isError ? "#fff4f4" : "#f6faff";
+  ui.feedbackBox.style.background = isError ? "rgba(255, 244, 244, 0.82)" : "rgba(246, 250, 255, 0.82)";
   ui.feedbackBox.style.color = isError ? "var(--danger)" : "#26435f";
   state.feedbackTimer = setTimeout(() => ui.feedbackBox.classList.add("hidden"), 2000);
 }

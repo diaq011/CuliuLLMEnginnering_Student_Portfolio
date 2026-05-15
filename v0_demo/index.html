@@ -105,8 +105,23 @@
       <header class="page-header">
         <h1>设置</h1>
       </header>
-      <div class="card">
-        <h2>每周空闲时间段</h2>
+      <div id="settingsHome" class="settings-view card">
+        <h2>设置分类</h2>
+        <div class="settings-list">
+          <button id="openAvailabilitySettingsBtn" class="settings-entry" type="button">
+            <span>
+              <strong>空闲时间段设置</strong>
+              <span>管理每周可以安排学习任务的时间。</span>
+            </span>
+            <span class="settings-entry-arrow">›</span>
+          </button>
+        </div>
+      </div>
+      <div id="availabilitySettings" class="settings-view card" hidden>
+        <div class="settings-detail-head">
+          <button id="backSettingsBtn" class="btn small" type="button">‹ 返回</button>
+          <h2>每周空闲时间段</h2>
+        </div>
         <p class="hint">每个时段都支持：下拉选择或手动输入。输入会自动规范为 HH:MM。</p>
         <form id="availabilityForm" class="form-grid">
           <div class="availability-actions">
