@@ -19,7 +19,7 @@
       "title": "数学卷",
       "deadline": "2026-05-16",
       "estimatedMinutes": null,
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
@@ -29,141 +29,106 @@
       "taskType": "test_paper",
       "difficulty": "medium",
       "estimatedMinutes": null,
+      "status": "done"
+    },
+    {
+      "id": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
+      "title": "数学卷",
+      "deadline": "2026-05-16",
+      "subject": "math",
+      "taskType": "test_paper",
+      "difficulty": "medium",
+      "estimatedMinutes": null,
+      "status": "todo"
+    },
+    {
+      "id": "37e0f537-121a-402d-9b61-8a7aa0e064b1",
+      "title": "英语卷",
+      "deadline": "2026-05-16",
+      "subject": "english",
+      "taskType": "test_paper",
+      "difficulty": "medium",
+      "estimatedMinutes": null,
+      "status": "todo"
+    },
+    {
+      "id": "cc99af78-e3ba-42d6-ab43-7982fb17bde4",
+      "title": "语文卷",
+      "deadline": "2026-05-16",
+      "subject": "chinese",
+      "taskType": "test_paper",
+      "difficulty": "medium",
+      "estimatedMinutes": null,
       "status": "todo"
     }
   ],
   "todayPlan": {
     "date": "2026-05-15",
     "taskIds": [
-      "364c86bd-d5cc-44c7-b6e4-49778dceb392",
-      "d84f7a0c-c5bc-4656-850d-44bd30b35cc9"
+      "f0809900-bbdd-4b2e-8c24-58dd60249b30"
     ],
-    "totalEstimatedMinutes": 53,
+    "totalEstimatedMinutes": 60,
     "scheduledBlocks": [
       {
-        "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
+        "taskId": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
         "startMinute": 1080,
-        "endMinute": 1105,
+        "endMinute": 1140,
         "title": "数学卷",
         "deadline": "2026-05-16"
-      },
-      {
-        "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
-        "startMinute": 1105,
-        "endMinute": 1133,
-        "title": "数学卷两张",
-        "deadline": "2025-05-17"
       }
     ],
     "weekday": "fri",
-    "note": "",
+    "note": "以下任务未能完全排入DDL前：英语卷, 语文卷",
     "details": {
-      "rationale": "两个数学任务均在截止日期前安排，估算值符合要求且无冗余风险。",
+      "rationale": "All estimates are based on available evidence and follow the constraints of splitting tasks across days and prioritizing deadlines.",
       "risks": [
-        "low"
+        "空闲时段不足，部分任务无法在DDL前完成。",
+        "总需求 250 分钟，高于可用时段 120 分钟。",
+        "已安排 120 / 250 分钟，建议压缩任务或增加空闲时段。"
       ],
       "taskEstimates": [
         {
-          "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
+          "taskId": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
           "title": "数学卷",
-          "estimatedMinutes": 25,
-          "reason": "基于高中学生完成20道跨学科综合选择题（如文综/理综基础）的估算",
-          "evidence_ids": [
-            "general_exercise_set_senior_high_medium_188"
-          ]
+          "estimatedMinutes": 100,
+          "reason": "Based on the math test paper exam sprint medium task, estimated 100 minutes.；证据无效已回退",
+          "evidence_ids": []
         },
         {
-          "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
-          "title": "数学卷两张",
-          "estimatedMinutes": 28,
-          "reason": "基于初中高年级学生完成一套完整数学试卷的估算",
-          "evidence_ids": [
-            "math_test_paper_middle_high_medium_052"
-          ]
+          "taskId": "37e0f537-121a-402d-9b61-8a7aa0e064b1",
+          "title": "英语卷",
+          "estimatedMinutes": 75,
+          "reason": "Based on the math test paper exam sprint medium task, estimated 100 minutes.；证据无效已回退",
+          "evidence_ids": []
+        },
+        {
+          "taskId": "cc99af78-e3ba-42d6-ab43-7982fb17bde4",
+          "title": "语文卷",
+          "estimatedMinutes": 75,
+          "reason": "Based on the math test paper exam sprint medium task, estimated 100 minutes.；证据无效已回退",
+          "evidence_ids": []
         }
       ],
       "ragTopK": 5,
       "ragExamples": [
         {
-          "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
+          "taskId": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
           "title": "数学卷",
           "examples": [
             {
-              "sample_id": "general_exercise_set_senior_high_medium_188",
+              "sample_id": "math_test_paper_senior_high_medium_001",
               "source": "knowledge_base",
-              "task_title": "高中学生完成20道跨学科综合选择题（如文综/理综基础）。",
-              "actual_minutes": 25,
-              "estimated_minutes": 25,
-              "estimated_minutes_min": 20,
-              "estimated_minutes_max": 30,
-              "subject": "general",
-              "task_type": "exercise_set",
-              "difficulty": "medium",
-              "planning_advice": "集中完成。",
-              "score": 0.8113
-            },
-            {
-              "sample_id": "physics_exercise_set_middle_high_medium_056",
-              "source": "knowledge_base",
-              "task_title": "初中高年级学生完成10道物理练习题。",
-              "actual_minutes": 25,
-              "estimated_minutes": 25,
-              "estimated_minutes_min": 20,
-              "estimated_minutes_max": 30,
-              "subject": "physics",
-              "task_type": "exercise_set",
-              "difficulty": "medium",
-              "planning_advice": "集中完成。",
-              "score": 0.508
-            },
-            {
-              "sample_id": "math_exercise_set_middle_high_medium_051",
-              "source": "knowledge_base",
-              "task_title": "初中高年级学生完成15道中等难度数学练习题。",
-              "actual_minutes": 32,
-              "estimated_minutes": 32,
-              "estimated_minutes_min": 25,
-              "estimated_minutes_max": 40,
+              "task_title": "高中学生完成数学试卷第1-2页，主要包含选择题和填空题。",
+              "actual_minutes": 45,
+              "estimated_minutes": 45,
+              "estimated_minutes_min": 35,
+              "estimated_minutes_max": 55,
               "subject": "math",
-              "task_type": "exercise_set",
+              "task_type": "test_paper",
               "difficulty": "medium",
-              "planning_advice": "集中精力完成。",
-              "score": 0.504
+              "planning_advice": "安排在精力较好的整块时间，超过60分钟建议拆分。",
+              "score": 0.805
             },
-            {
-              "sample_id": "politics_exercise_set_exam_sprint_medium_060",
-              "source": "knowledge_base",
-              "task_title": "冲刺阶段学生完成20道政治选择题。",
-              "actual_minutes": 30,
-              "estimated_minutes": 30,
-              "estimated_minutes_min": 25,
-              "estimated_minutes_max": 35,
-              "subject": "politics",
-              "task_type": "exercise_set",
-              "difficulty": "medium",
-              "planning_advice": "快速作答。",
-              "score": 0.504
-            },
-            {
-              "sample_id": "geography_exercise_set_exam_sprint_medium_061",
-              "source": "knowledge_base",
-              "task_title": "冲刺阶段学生完成20道地理选择题。",
-              "actual_minutes": 30,
-              "estimated_minutes": 30,
-              "estimated_minutes_min": 25,
-              "estimated_minutes_max": 35,
-              "subject": "geography",
-              "task_type": "exercise_set",
-              "difficulty": "medium",
-              "planning_advice": "限时训练。",
-              "score": 0.504
-            }
-          ]
-        },
-        {
-          "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
-          "title": "数学卷两张",
-          "examples": [
             {
               "sample_id": "math_test_paper_middle_high_medium_052",
               "source": "knowledge_base",
@@ -193,18 +158,18 @@
               "score": 0.7987
             },
             {
-              "sample_id": "math_test_paper_senior_high_medium_001",
+              "sample_id": "math_test_paper_senior_high_hard_002",
               "source": "knowledge_base",
-              "task_title": "高中学生完成数学试卷第1-2页，主要包含选择题和填空题。",
-              "actual_minutes": 45,
-              "estimated_minutes": 45,
-              "estimated_minutes_min": 35,
-              "estimated_minutes_max": 55,
+              "task_title": "高中学生完成一套完整数学试卷，包括选择题、填空题和解答题，难度中等偏上。",
+              "actual_minutes": 110,
+              "estimated_minutes": 110,
+              "estimated_minutes_min": 90,
+              "estimated_minutes_max": 130,
               "subject": "math",
               "task_type": "test_paper",
-              "difficulty": "medium",
-              "planning_advice": "安排在精力较好的整块时间，超过60分钟建议拆分。",
-              "score": 0.7838
+              "difficulty": "hard",
+              "planning_advice": "建议周末整块时间完成，拆成两段各55分钟，中间休息10分钟。",
+              "score": 0.7031
             },
             {
               "sample_id": "math_test_paper_exam_sprint_hard_062",
@@ -219,20 +184,158 @@
               "difficulty": "hard",
               "planning_advice": "严格按照考试时间练习。",
               "score": 0.7
+            }
+          ]
+        },
+        {
+          "taskId": "37e0f537-121a-402d-9b61-8a7aa0e064b1",
+          "title": "英语卷",
+          "examples": [
+            {
+              "sample_id": "english_test_paper_middle_high_hard_106",
+              "source": "knowledge_base",
+              "task_title": "初中高年级学生完成一套中考英语模拟卷（不含听力）。",
+              "actual_minutes": 75,
+              "estimated_minutes": 75,
+              "estimated_minutes_min": 60,
+              "estimated_minutes_max": 90,
+              "subject": "english",
+              "task_type": "test_paper",
+              "difficulty": "hard",
+              "planning_advice": "限时完成。",
+              "score": 0.688
             },
             {
-              "sample_id": "math_test_paper_middle_high_hard_105",
+              "sample_id": "math_test_paper_exam_sprint_medium_003",
               "source": "knowledge_base",
-              "task_title": "初中高年级学生完成一套中考难度数学模拟卷，包含压轴题。",
+              "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
               "actual_minutes": 100,
               "estimated_minutes": 100,
               "estimated_minutes_min": 80,
               "estimated_minutes_max": 120,
               "subject": "math",
               "task_type": "test_paper",
+              "difficulty": "medium",
+              "planning_advice": "安排在上午或周末整块时间，严格按照考试时间练习。",
+              "score": 0.4989
+            },
+            {
+              "sample_id": "math_test_paper_middle_high_medium_052",
+              "source": "knowledge_base",
+              "task_title": "初中高年级学生完成一套完整数学试卷。",
+              "actual_minutes": 75,
+              "estimated_minutes": 75,
+              "estimated_minutes_min": 60,
+              "estimated_minutes_max": 90,
+              "subject": "math",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "planning_advice": "周末限时练习。",
+              "score": 0.4944
+            },
+            {
+              "sample_id": "politics_test_paper_exam_sprint_medium_069",
+              "source": "knowledge_base",
+              "task_title": "冲刺阶段学生完成一套高考文综卷的政治部分。",
+              "actual_minutes": 55,
+              "estimated_minutes": 55,
+              "estimated_minutes_min": 45,
+              "estimated_minutes_max": 65,
+              "subject": "politics",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "planning_advice": "限时完成。",
+              "score": 0.4884
+            },
+            {
+              "sample_id": "geography_test_paper_exam_sprint_medium_070",
+              "source": "knowledge_base",
+              "task_title": "冲刺阶段学生完成一套高考文综卷的地理部分。",
+              "actual_minutes": 55,
+              "estimated_minutes": 55,
+              "estimated_minutes_min": 45,
+              "estimated_minutes_max": 65,
+              "subject": "geography",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "planning_advice": "限时完成。",
+              "score": 0.4884
+            }
+          ]
+        },
+        {
+          "taskId": "cc99af78-e3ba-42d6-ab43-7982fb17bde4",
+          "title": "语文卷",
+          "examples": [
+            {
+              "sample_id": "chinese_test_paper_middle_high_hard_107",
+              "source": "knowledge_base",
+              "task_title": "初中高年级学生完成一套中考语文模拟卷（含作文）。",
+              "actual_minutes": 85,
+              "estimated_minutes": 85,
+              "estimated_minutes_min": 70,
+              "estimated_minutes_max": 100,
+              "subject": "chinese",
+              "task_type": "test_paper",
               "difficulty": "hard",
-              "planning_advice": "周末整块时间限时练习。",
-              "score": 0.694
+              "planning_advice": "周末整块时间。",
+              "score": 0.688
+            },
+            {
+              "sample_id": "math_test_paper_exam_sprint_medium_003",
+              "source": "knowledge_base",
+              "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
+              "actual_minutes": 100,
+              "estimated_minutes": 100,
+              "estimated_minutes_min": 80,
+              "estimated_minutes_max": 120,
+              "subject": "math",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "planning_advice": "安排在上午或周末整块时间，严格按照考试时间练习。",
+              "score": 0.4989
+            },
+            {
+              "sample_id": "math_test_paper_middle_high_medium_052",
+              "source": "knowledge_base",
+              "task_title": "初中高年级学生完成一套完整数学试卷。",
+              "actual_minutes": 75,
+              "estimated_minutes": 75,
+              "estimated_minutes_min": 60,
+              "estimated_minutes_max": 90,
+              "subject": "math",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "planning_advice": "周末限时练习。",
+              "score": 0.4944
+            },
+            {
+              "sample_id": "chinese_reading_middle_high_medium_055",
+              "source": "knowledge_base",
+              "task_title": "初中高年级学生完成2篇现代文阅读理解。",
+              "actual_minutes": 25,
+              "estimated_minutes": 25,
+              "estimated_minutes_min": 20,
+              "estimated_minutes_max": 30,
+              "subject": "chinese",
+              "task_type": "reading",
+              "difficulty": "medium",
+              "planning_advice": "每篇12分钟左右。",
+              "score": 0.4884
+            },
+            {
+              "sample_id": "politics_test_paper_exam_sprint_medium_069",
+              "source": "knowledge_base",
+              "task_title": "冲刺阶段学生完成一套高考文综卷的政治部分。",
+              "actual_minutes": 55,
+              "estimated_minutes": 55,
+              "estimated_minutes_min": 45,
+              "estimated_minutes_max": 65,
+              "subject": "politics",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "planning_advice": "限时完成。",
+              "score": 0.4884
             }
           ]
         }
@@ -247,135 +350,70 @@
     "2026-05-15": {
       "date": "2026-05-15",
       "taskIds": [
-        "364c86bd-d5cc-44c7-b6e4-49778dceb392",
-        "d84f7a0c-c5bc-4656-850d-44bd30b35cc9"
+        "f0809900-bbdd-4b2e-8c24-58dd60249b30"
       ],
-      "totalEstimatedMinutes": 53,
+      "totalEstimatedMinutes": 60,
       "scheduledBlocks": [
         {
-          "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
+          "taskId": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
           "startMinute": 1080,
-          "endMinute": 1105,
+          "endMinute": 1140,
           "title": "数学卷",
           "deadline": "2026-05-16"
-        },
-        {
-          "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
-          "startMinute": 1105,
-          "endMinute": 1133,
-          "title": "数学卷两张",
-          "deadline": "2025-05-17"
         }
       ],
       "weekday": "fri",
-      "note": "",
+      "note": "以下任务未能完全排入DDL前：英语卷, 语文卷",
       "details": {
-        "rationale": "两个数学任务均在截止日期前安排，估算值符合要求且无冗余风险。",
+        "rationale": "All estimates are based on available evidence and follow the constraints of splitting tasks across days and prioritizing deadlines.",
         "risks": [
-          "low"
+          "空闲时段不足，部分任务无法在DDL前完成。",
+          "总需求 250 分钟，高于可用时段 120 分钟。",
+          "已安排 120 / 250 分钟，建议压缩任务或增加空闲时段。"
         ],
         "taskEstimates": [
           {
-            "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
+            "taskId": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
             "title": "数学卷",
-            "estimatedMinutes": 25,
-            "reason": "基于高中学生完成20道跨学科综合选择题（如文综/理综基础）的估算",
-            "evidence_ids": [
-              "general_exercise_set_senior_high_medium_188"
-            ]
+            "estimatedMinutes": 100,
+            "reason": "Based on the math test paper exam sprint medium task, estimated 100 minutes.；证据无效已回退",
+            "evidence_ids": []
           },
           {
-            "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
-            "title": "数学卷两张",
-            "estimatedMinutes": 28,
-            "reason": "基于初中高年级学生完成一套完整数学试卷的估算",
-            "evidence_ids": [
-              "math_test_paper_middle_high_medium_052"
-            ]
+            "taskId": "37e0f537-121a-402d-9b61-8a7aa0e064b1",
+            "title": "英语卷",
+            "estimatedMinutes": 75,
+            "reason": "Based on the math test paper exam sprint medium task, estimated 100 minutes.；证据无效已回退",
+            "evidence_ids": []
+          },
+          {
+            "taskId": "cc99af78-e3ba-42d6-ab43-7982fb17bde4",
+            "title": "语文卷",
+            "estimatedMinutes": 75,
+            "reason": "Based on the math test paper exam sprint medium task, estimated 100 minutes.；证据无效已回退",
+            "evidence_ids": []
           }
         ],
         "ragTopK": 5,
         "ragExamples": [
           {
-            "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
+            "taskId": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
             "title": "数学卷",
             "examples": [
               {
-                "sample_id": "general_exercise_set_senior_high_medium_188",
+                "sample_id": "math_test_paper_senior_high_medium_001",
                 "source": "knowledge_base",
-                "task_title": "高中学生完成20道跨学科综合选择题（如文综/理综基础）。",
-                "actual_minutes": 25,
-                "estimated_minutes": 25,
-                "estimated_minutes_min": 20,
-                "estimated_minutes_max": 30,
-                "subject": "general",
-                "task_type": "exercise_set",
-                "difficulty": "medium",
-                "planning_advice": "集中完成。",
-                "score": 0.8113
-              },
-              {
-                "sample_id": "physics_exercise_set_middle_high_medium_056",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生完成10道物理练习题。",
-                "actual_minutes": 25,
-                "estimated_minutes": 25,
-                "estimated_minutes_min": 20,
-                "estimated_minutes_max": 30,
-                "subject": "physics",
-                "task_type": "exercise_set",
-                "difficulty": "medium",
-                "planning_advice": "集中完成。",
-                "score": 0.508
-              },
-              {
-                "sample_id": "math_exercise_set_middle_high_medium_051",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生完成15道中等难度数学练习题。",
-                "actual_minutes": 32,
-                "estimated_minutes": 32,
-                "estimated_minutes_min": 25,
-                "estimated_minutes_max": 40,
+                "task_title": "高中学生完成数学试卷第1-2页，主要包含选择题和填空题。",
+                "actual_minutes": 45,
+                "estimated_minutes": 45,
+                "estimated_minutes_min": 35,
+                "estimated_minutes_max": 55,
                 "subject": "math",
-                "task_type": "exercise_set",
+                "task_type": "test_paper",
                 "difficulty": "medium",
-                "planning_advice": "集中精力完成。",
-                "score": 0.504
+                "planning_advice": "安排在精力较好的整块时间，超过60分钟建议拆分。",
+                "score": 0.805
               },
-              {
-                "sample_id": "politics_exercise_set_exam_sprint_medium_060",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成20道政治选择题。",
-                "actual_minutes": 30,
-                "estimated_minutes": 30,
-                "estimated_minutes_min": 25,
-                "estimated_minutes_max": 35,
-                "subject": "politics",
-                "task_type": "exercise_set",
-                "difficulty": "medium",
-                "planning_advice": "快速作答。",
-                "score": 0.504
-              },
-              {
-                "sample_id": "geography_exercise_set_exam_sprint_medium_061",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成20道地理选择题。",
-                "actual_minutes": 30,
-                "estimated_minutes": 30,
-                "estimated_minutes_min": 25,
-                "estimated_minutes_max": 35,
-                "subject": "geography",
-                "task_type": "exercise_set",
-                "difficulty": "medium",
-                "planning_advice": "限时训练。",
-                "score": 0.504
-              }
-            ]
-          },
-          {
-            "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
-            "title": "数学卷两张",
-            "examples": [
               {
                 "sample_id": "math_test_paper_middle_high_medium_052",
                 "source": "knowledge_base",
@@ -405,18 +443,18 @@
                 "score": 0.7987
               },
               {
-                "sample_id": "math_test_paper_senior_high_medium_001",
+                "sample_id": "math_test_paper_senior_high_hard_002",
                 "source": "knowledge_base",
-                "task_title": "高中学生完成数学试卷第1-2页，主要包含选择题和填空题。",
-                "actual_minutes": 45,
-                "estimated_minutes": 45,
-                "estimated_minutes_min": 35,
-                "estimated_minutes_max": 55,
+                "task_title": "高中学生完成一套完整数学试卷，包括选择题、填空题和解答题，难度中等偏上。",
+                "actual_minutes": 110,
+                "estimated_minutes": 110,
+                "estimated_minutes_min": 90,
+                "estimated_minutes_max": 130,
                 "subject": "math",
                 "task_type": "test_paper",
-                "difficulty": "medium",
-                "planning_advice": "安排在精力较好的整块时间，超过60分钟建议拆分。",
-                "score": 0.7838
+                "difficulty": "hard",
+                "planning_advice": "建议周末整块时间完成，拆成两段各55分钟，中间休息10分钟。",
+                "score": 0.7031
               },
               {
                 "sample_id": "math_test_paper_exam_sprint_hard_062",
@@ -431,20 +469,158 @@
                 "difficulty": "hard",
                 "planning_advice": "严格按照考试时间练习。",
                 "score": 0.7
+              }
+            ]
+          },
+          {
+            "taskId": "37e0f537-121a-402d-9b61-8a7aa0e064b1",
+            "title": "英语卷",
+            "examples": [
+              {
+                "sample_id": "english_test_paper_middle_high_hard_106",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成一套中考英语模拟卷（不含听力）。",
+                "actual_minutes": 75,
+                "estimated_minutes": 75,
+                "estimated_minutes_min": 60,
+                "estimated_minutes_max": 90,
+                "subject": "english",
+                "task_type": "test_paper",
+                "difficulty": "hard",
+                "planning_advice": "限时完成。",
+                "score": 0.688
               },
               {
-                "sample_id": "math_test_paper_middle_high_hard_105",
+                "sample_id": "math_test_paper_exam_sprint_medium_003",
                 "source": "knowledge_base",
-                "task_title": "初中高年级学生完成一套中考难度数学模拟卷，包含压轴题。",
+                "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
                 "actual_minutes": 100,
                 "estimated_minutes": 100,
                 "estimated_minutes_min": 80,
                 "estimated_minutes_max": 120,
                 "subject": "math",
                 "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "安排在上午或周末整块时间，严格按照考试时间练习。",
+                "score": 0.4989
+              },
+              {
+                "sample_id": "math_test_paper_middle_high_medium_052",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成一套完整数学试卷。",
+                "actual_minutes": 75,
+                "estimated_minutes": 75,
+                "estimated_minutes_min": 60,
+                "estimated_minutes_max": 90,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "周末限时练习。",
+                "score": 0.4944
+              },
+              {
+                "sample_id": "politics_test_paper_exam_sprint_medium_069",
+                "source": "knowledge_base",
+                "task_title": "冲刺阶段学生完成一套高考文综卷的政治部分。",
+                "actual_minutes": 55,
+                "estimated_minutes": 55,
+                "estimated_minutes_min": 45,
+                "estimated_minutes_max": 65,
+                "subject": "politics",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "限时完成。",
+                "score": 0.4884
+              },
+              {
+                "sample_id": "geography_test_paper_exam_sprint_medium_070",
+                "source": "knowledge_base",
+                "task_title": "冲刺阶段学生完成一套高考文综卷的地理部分。",
+                "actual_minutes": 55,
+                "estimated_minutes": 55,
+                "estimated_minutes_min": 45,
+                "estimated_minutes_max": 65,
+                "subject": "geography",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "限时完成。",
+                "score": 0.4884
+              }
+            ]
+          },
+          {
+            "taskId": "cc99af78-e3ba-42d6-ab43-7982fb17bde4",
+            "title": "语文卷",
+            "examples": [
+              {
+                "sample_id": "chinese_test_paper_middle_high_hard_107",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成一套中考语文模拟卷（含作文）。",
+                "actual_minutes": 85,
+                "estimated_minutes": 85,
+                "estimated_minutes_min": 70,
+                "estimated_minutes_max": 100,
+                "subject": "chinese",
+                "task_type": "test_paper",
                 "difficulty": "hard",
-                "planning_advice": "周末整块时间限时练习。",
-                "score": 0.694
+                "planning_advice": "周末整块时间。",
+                "score": 0.688
+              },
+              {
+                "sample_id": "math_test_paper_exam_sprint_medium_003",
+                "source": "knowledge_base",
+                "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
+                "actual_minutes": 100,
+                "estimated_minutes": 100,
+                "estimated_minutes_min": 80,
+                "estimated_minutes_max": 120,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "安排在上午或周末整块时间，严格按照考试时间练习。",
+                "score": 0.4989
+              },
+              {
+                "sample_id": "math_test_paper_middle_high_medium_052",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成一套完整数学试卷。",
+                "actual_minutes": 75,
+                "estimated_minutes": 75,
+                "estimated_minutes_min": 60,
+                "estimated_minutes_max": 90,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "周末限时练习。",
+                "score": 0.4944
+              },
+              {
+                "sample_id": "chinese_reading_middle_high_medium_055",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成2篇现代文阅读理解。",
+                "actual_minutes": 25,
+                "estimated_minutes": 25,
+                "estimated_minutes_min": 20,
+                "estimated_minutes_max": 30,
+                "subject": "chinese",
+                "task_type": "reading",
+                "difficulty": "medium",
+                "planning_advice": "每篇12分钟左右。",
+                "score": 0.4884
+              },
+              {
+                "sample_id": "politics_test_paper_exam_sprint_medium_069",
+                "source": "knowledge_base",
+                "task_title": "冲刺阶段学生完成一套高考文综卷的政治部分。",
+                "actual_minutes": 55,
+                "estimated_minutes": 55,
+                "estimated_minutes_min": 45,
+                "estimated_minutes_max": 65,
+                "subject": "politics",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "限时完成。",
+                "score": 0.4884
               }
             ]
           }
@@ -457,118 +633,79 @@
     },
     "2026-05-16": {
       "date": "2026-05-16",
-      "taskIds": [],
-      "totalEstimatedMinutes": 0,
-      "scheduledBlocks": [],
+      "taskIds": [
+        "f0809900-bbdd-4b2e-8c24-58dd60249b30",
+        "37e0f537-121a-402d-9b61-8a7aa0e064b1"
+      ],
+      "totalEstimatedMinutes": 60,
+      "scheduledBlocks": [
+        {
+          "taskId": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
+          "startMinute": 1080,
+          "endMinute": 1120,
+          "title": "数学卷",
+          "deadline": "2026-05-16"
+        },
+        {
+          "taskId": "37e0f537-121a-402d-9b61-8a7aa0e064b1",
+          "startMinute": 1120,
+          "endMinute": 1140,
+          "title": "英语卷",
+          "deadline": "2026-05-16"
+        }
+      ],
       "weekday": "sat",
       "note": "",
       "details": {
-        "rationale": "两个数学任务均在截止日期前安排，估算值符合要求且无冗余风险。",
+        "rationale": "All estimates are based on available evidence and follow the constraints of splitting tasks across days and prioritizing deadlines.",
         "risks": [
-          "low"
+          "空闲时段不足，部分任务无法在DDL前完成。",
+          "总需求 250 分钟，高于可用时段 120 分钟。",
+          "已安排 120 / 250 分钟，建议压缩任务或增加空闲时段。"
         ],
         "taskEstimates": [
           {
-            "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
+            "taskId": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
             "title": "数学卷",
-            "estimatedMinutes": 25,
-            "reason": "基于高中学生完成20道跨学科综合选择题（如文综/理综基础）的估算",
-            "evidence_ids": [
-              "general_exercise_set_senior_high_medium_188"
-            ]
+            "estimatedMinutes": 100,
+            "reason": "Based on the math test paper exam sprint medium task, estimated 100 minutes.；证据无效已回退",
+            "evidence_ids": []
           },
           {
-            "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
-            "title": "数学卷两张",
-            "estimatedMinutes": 28,
-            "reason": "基于初中高年级学生完成一套完整数学试卷的估算",
-            "evidence_ids": [
-              "math_test_paper_middle_high_medium_052"
-            ]
+            "taskId": "37e0f537-121a-402d-9b61-8a7aa0e064b1",
+            "title": "英语卷",
+            "estimatedMinutes": 75,
+            "reason": "Based on the math test paper exam sprint medium task, estimated 100 minutes.；证据无效已回退",
+            "evidence_ids": []
+          },
+          {
+            "taskId": "cc99af78-e3ba-42d6-ab43-7982fb17bde4",
+            "title": "语文卷",
+            "estimatedMinutes": 75,
+            "reason": "Based on the math test paper exam sprint medium task, estimated 100 minutes.；证据无效已回退",
+            "evidence_ids": []
           }
         ],
         "ragTopK": 5,
         "ragExamples": [
           {
-            "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
+            "taskId": "f0809900-bbdd-4b2e-8c24-58dd60249b30",
             "title": "数学卷",
             "examples": [
               {
-                "sample_id": "general_exercise_set_senior_high_medium_188",
+                "sample_id": "math_test_paper_senior_high_medium_001",
                 "source": "knowledge_base",
-                "task_title": "高中学生完成20道跨学科综合选择题（如文综/理综基础）。",
-                "actual_minutes": 25,
-                "estimated_minutes": 25,
-                "estimated_minutes_min": 20,
-                "estimated_minutes_max": 30,
-                "subject": "general",
-                "task_type": "exercise_set",
-                "difficulty": "medium",
-                "planning_advice": "集中完成。",
-                "score": 0.8113
-              },
-              {
-                "sample_id": "physics_exercise_set_middle_high_medium_056",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生完成10道物理练习题。",
-                "actual_minutes": 25,
-                "estimated_minutes": 25,
-                "estimated_minutes_min": 20,
-                "estimated_minutes_max": 30,
-                "subject": "physics",
-                "task_type": "exercise_set",
-                "difficulty": "medium",
-                "planning_advice": "集中完成。",
-                "score": 0.508
-              },
-              {
-                "sample_id": "math_exercise_set_middle_high_medium_051",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生完成15道中等难度数学练习题。",
-                "actual_minutes": 32,
-                "estimated_minutes": 32,
-                "estimated_minutes_min": 25,
-                "estimated_minutes_max": 40,
+                "task_title": "高中学生完成数学试卷第1-2页，主要包含选择题和填空题。",
+                "actual_minutes": 45,
+                "estimated_minutes": 45,
+                "estimated_minutes_min": 35,
+                "estimated_minutes_max": 55,
                 "subject": "math",
-                "task_type": "exercise_set",
+                "task_type": "test_paper",
                 "difficulty": "medium",
-                "planning_advice": "集中精力完成。",
-                "score": 0.504
+                "planning_advice": "安排在精力较好的整块时间，超过60分钟建议拆分。",
+                "score": 0.805
               },
-              {
-                "sample_id": "politics_exercise_set_exam_sprint_medium_060",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成20道政治选择题。",
-                "actual_minutes": 30,
-                "estimated_minutes": 30,
-                "estimated_minutes_min": 25,
-                "estimated_minutes_max": 35,
-                "subject": "politics",
-                "task_type": "exercise_set",
-                "difficulty": "medium",
-                "planning_advice": "快速作答。",
-                "score": 0.504
-              },
-              {
-                "sample_id": "geography_exercise_set_exam_sprint_medium_061",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成20道地理选择题。",
-                "actual_minutes": 30,
-                "estimated_minutes": 30,
-                "estimated_minutes_min": 25,
-                "estimated_minutes_max": 35,
-                "subject": "geography",
-                "task_type": "exercise_set",
-                "difficulty": "medium",
-                "planning_advice": "限时训练。",
-                "score": 0.504
-              }
-            ]
-          },
-          {
-            "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
-            "title": "数学卷两张",
-            "examples": [
               {
                 "sample_id": "math_test_paper_middle_high_medium_052",
                 "source": "knowledge_base",
@@ -598,18 +735,18 @@
                 "score": 0.7987
               },
               {
-                "sample_id": "math_test_paper_senior_high_medium_001",
+                "sample_id": "math_test_paper_senior_high_hard_002",
                 "source": "knowledge_base",
-                "task_title": "高中学生完成数学试卷第1-2页，主要包含选择题和填空题。",
-                "actual_minutes": 45,
-                "estimated_minutes": 45,
-                "estimated_minutes_min": 35,
-                "estimated_minutes_max": 55,
+                "task_title": "高中学生完成一套完整数学试卷，包括选择题、填空题和解答题，难度中等偏上。",
+                "actual_minutes": 110,
+                "estimated_minutes": 110,
+                "estimated_minutes_min": 90,
+                "estimated_minutes_max": 130,
                 "subject": "math",
                 "task_type": "test_paper",
-                "difficulty": "medium",
-                "planning_advice": "安排在精力较好的整块时间，超过60分钟建议拆分。",
-                "score": 0.7838
+                "difficulty": "hard",
+                "planning_advice": "建议周末整块时间完成，拆成两段各55分钟，中间休息10分钟。",
+                "score": 0.7031
               },
               {
                 "sample_id": "math_test_paper_exam_sprint_hard_062",
@@ -624,20 +761,158 @@
                 "difficulty": "hard",
                 "planning_advice": "严格按照考试时间练习。",
                 "score": 0.7
+              }
+            ]
+          },
+          {
+            "taskId": "37e0f537-121a-402d-9b61-8a7aa0e064b1",
+            "title": "英语卷",
+            "examples": [
+              {
+                "sample_id": "english_test_paper_middle_high_hard_106",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成一套中考英语模拟卷（不含听力）。",
+                "actual_minutes": 75,
+                "estimated_minutes": 75,
+                "estimated_minutes_min": 60,
+                "estimated_minutes_max": 90,
+                "subject": "english",
+                "task_type": "test_paper",
+                "difficulty": "hard",
+                "planning_advice": "限时完成。",
+                "score": 0.688
               },
               {
-                "sample_id": "math_test_paper_middle_high_hard_105",
+                "sample_id": "math_test_paper_exam_sprint_medium_003",
                 "source": "knowledge_base",
-                "task_title": "初中高年级学生完成一套中考难度数学模拟卷，包含压轴题。",
+                "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
                 "actual_minutes": 100,
                 "estimated_minutes": 100,
                 "estimated_minutes_min": 80,
                 "estimated_minutes_max": 120,
                 "subject": "math",
                 "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "安排在上午或周末整块时间，严格按照考试时间练习。",
+                "score": 0.4989
+              },
+              {
+                "sample_id": "math_test_paper_middle_high_medium_052",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成一套完整数学试卷。",
+                "actual_minutes": 75,
+                "estimated_minutes": 75,
+                "estimated_minutes_min": 60,
+                "estimated_minutes_max": 90,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "周末限时练习。",
+                "score": 0.4944
+              },
+              {
+                "sample_id": "politics_test_paper_exam_sprint_medium_069",
+                "source": "knowledge_base",
+                "task_title": "冲刺阶段学生完成一套高考文综卷的政治部分。",
+                "actual_minutes": 55,
+                "estimated_minutes": 55,
+                "estimated_minutes_min": 45,
+                "estimated_minutes_max": 65,
+                "subject": "politics",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "限时完成。",
+                "score": 0.4884
+              },
+              {
+                "sample_id": "geography_test_paper_exam_sprint_medium_070",
+                "source": "knowledge_base",
+                "task_title": "冲刺阶段学生完成一套高考文综卷的地理部分。",
+                "actual_minutes": 55,
+                "estimated_minutes": 55,
+                "estimated_minutes_min": 45,
+                "estimated_minutes_max": 65,
+                "subject": "geography",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "限时完成。",
+                "score": 0.4884
+              }
+            ]
+          },
+          {
+            "taskId": "cc99af78-e3ba-42d6-ab43-7982fb17bde4",
+            "title": "语文卷",
+            "examples": [
+              {
+                "sample_id": "chinese_test_paper_middle_high_hard_107",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成一套中考语文模拟卷（含作文）。",
+                "actual_minutes": 85,
+                "estimated_minutes": 85,
+                "estimated_minutes_min": 70,
+                "estimated_minutes_max": 100,
+                "subject": "chinese",
+                "task_type": "test_paper",
                 "difficulty": "hard",
-                "planning_advice": "周末整块时间限时练习。",
-                "score": 0.694
+                "planning_advice": "周末整块时间。",
+                "score": 0.688
+              },
+              {
+                "sample_id": "math_test_paper_exam_sprint_medium_003",
+                "source": "knowledge_base",
+                "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
+                "actual_minutes": 100,
+                "estimated_minutes": 100,
+                "estimated_minutes_min": 80,
+                "estimated_minutes_max": 120,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "安排在上午或周末整块时间，严格按照考试时间练习。",
+                "score": 0.4989
+              },
+              {
+                "sample_id": "math_test_paper_middle_high_medium_052",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成一套完整数学试卷。",
+                "actual_minutes": 75,
+                "estimated_minutes": 75,
+                "estimated_minutes_min": 60,
+                "estimated_minutes_max": 90,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "周末限时练习。",
+                "score": 0.4944
+              },
+              {
+                "sample_id": "chinese_reading_middle_high_medium_055",
+                "source": "knowledge_base",
+                "task_title": "初中高年级学生完成2篇现代文阅读理解。",
+                "actual_minutes": 25,
+                "estimated_minutes": 25,
+                "estimated_minutes_min": 20,
+                "estimated_minutes_max": 30,
+                "subject": "chinese",
+                "task_type": "reading",
+                "difficulty": "medium",
+                "planning_advice": "每篇12分钟左右。",
+                "score": 0.4884
+              },
+              {
+                "sample_id": "politics_test_paper_exam_sprint_medium_069",
+                "source": "knowledge_base",
+                "task_title": "冲刺阶段学生完成一套高考文综卷的政治部分。",
+                "actual_minutes": 55,
+                "estimated_minutes": 55,
+                "estimated_minutes_min": 45,
+                "estimated_minutes_max": 65,
+                "subject": "politics",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "限时完成。",
+                "score": 0.4884
               }
             ]
           }
@@ -650,6 +925,30 @@
     }
   },
   "checkins": [
+    {
+      "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
+      "done": true,
+      "actualMinutes": null,
+      "checkedAt": "2026-05-15T20:40:39"
+    },
+    {
+      "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
+      "done": true,
+      "actualMinutes": null,
+      "checkedAt": "2026-05-15T20:40:39"
+    },
+    {
+      "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
+      "done": false,
+      "actualMinutes": null,
+      "checkedAt": "2026-05-15T20:39:26"
+    },
+    {
+      "taskId": "d84f7a0c-c5bc-4656-850d-44bd30b35cc9",
+      "done": true,
+      "actualMinutes": null,
+      "checkedAt": "2026-05-15T20:39:25"
+    },
     {
       "taskId": "364c86bd-d5cc-44c7-b6e4-49778dceb392",
       "done": false,
