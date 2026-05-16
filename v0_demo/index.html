@@ -26,12 +26,12 @@
       <div class="card">
         <h2>常用入口</h2>
         <div class="icon-grid">
-          <div class="icon-item"><span>📅</span><p>日历</p></div>
-          <div class="icon-item"><span>⏱️</span><p>专注</p></div>
-          <div class="icon-item"><span>📝</span><p>笔记</p></div>
-          <div class="icon-item"><span>📊</span><p>统计</p></div>
-          <div class="icon-item"><span>🎯</span><p>目标</p></div>
-          <div class="icon-item"><span>🧩</span><p>更多</p></div>
+          <div class="icon-item"><span>📅</span></div>
+          <div class="icon-item"><span>⏱️</span></div>
+          <div class="icon-item"><span>📝</span></div>
+          <div class="icon-item"><span>📊</span></div>
+          <div class="icon-item"><span>🎯</span></div>
+          <div class="icon-item"><span>🧩</span></div>
         </div>
       </div>
     </section>
@@ -51,12 +51,11 @@
       <div class="card">
         <div class="timeline-actions-row">
           <button id="generateBtn" class="btn generate-btn" type="button">
-            <span class="btn-text">生成计划（全部任务）</span>
+            <span class="btn-text">生成计划</span>
             <span id="generateSpinner" class="spinner" aria-hidden="true"></span>
           </button>
           <button id="planInfoBtn" class="btn info-btn" type="button" title="查看计划详情" aria-label="查看计划详情">i</button>
         </div>
-        <p id="timelineHint" class="hint">单击时间轴方块可编辑名称、时间、描述或删除。</p>
       </div>
       <div class="card timeline-card">
         <div id="timelineHeader" class="timeline-header"></div>
@@ -146,26 +145,23 @@
         <h1>设置</h1>
       </header>
       <div id="settingsHome" class="settings-view card">
-        <h2>设置分类</h2>
+        <h2>设置</h2>
         <div class="settings-list">
           <button id="openAvailabilitySettingsBtn" class="settings-entry" type="button">
             <span>
               <strong>空闲时间段设置</strong>
-              <span>管理每周可以安排学习任务的时间。</span>
             </span>
             <span class="settings-entry-arrow">›</span>
           </button>
           <button id="openAccountSettingsBtn" class="settings-entry" type="button">
             <span>
               <strong>账号</strong>
-              <span>登录、注册或退出当前账号。</span>
             </span>
             <span class="settings-entry-arrow">›</span>
           </button>
           <button id="openFocusSettingsPageBtn" class="settings-entry" type="button">
             <span>
               <strong>专注</strong>
-              <span>设置专注界面的时间显示方式。</span>
             </span>
             <span class="settings-entry-arrow">›</span>
           </button>
@@ -193,7 +189,6 @@
         </div>
         <div id="accountProfileView" class="account-profile" hidden>
           <div class="account-profile-head">
-            <img id="accountAvatarPreview" class="account-avatar" src="./assets/default-avatar.png" alt="头像">
             <div>
               <strong id="accountDisplayName">未登录</strong>
               <p id="accountUsernameText" class="hint">--</p>
@@ -203,11 +198,6 @@
             显示名称
             <input id="profileNameInput" type="text" placeholder="例如：刘知行">
           </label>
-          <label>
-            头像路径
-            <input id="profileAvatarInput" type="text" placeholder="./assets/default-avatar.png">
-          </label>
-          <p class="hint">头像图片建议放在 v0_demo/assets/ 目录，例如 ./assets/default-avatar.png。</p>
           <div class="auth-actions">
             <button id="saveProfileBtn" class="btn primary" type="button">保存资料</button>
             <button id="profileLogoutBtn" class="btn danger" type="button">退出账号</button>
@@ -229,7 +219,6 @@
           <button id="backFocusSettingsBtn" class="btn small" type="button">‹ 返回</button>
           <h2>专注</h2>
         </div>
-        <p class="hint">设置专注界面中央大字显示内容。</p>
         <label class="radio-row">
           <input type="radio" name="focusDisplayMode" value="elapsed">
           显示计时器累积时长
@@ -326,6 +315,73 @@
         <div class="modal-actions danger-row">
           <button id="deleteTimelineBlockBtn" class="btn danger" type="button">删除</button>
           <button id="saveTimelineBlockBtn" class="btn primary" type="button">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="taskEditModal" class="modal hidden">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>编辑任务</h3>
+        <button id="closeTaskEditBtn" class="btn small" type="button">关闭</button>
+      </div>
+      <div class="modal-body">
+        <label>
+          任务名称
+          <input id="editTitleInput" type="text" placeholder="例如：数学卷3张">
+        </label>
+        <label>
+          截止日期
+          <input id="editDeadlineInput" type="date">
+        </label>
+        <label>
+          学科
+          <select id="editSubjectInput">
+            <option value="math">数学</option>
+            <option value="english">英语</option>
+            <option value="chinese">语文</option>
+            <option value="physics">物理</option>
+            <option value="chemistry">化学</option>
+            <option value="biology">生物</option>
+            <option value="history">历史</option>
+            <option value="politics">政治</option>
+            <option value="geography">地理</option>
+            <option value="general">综合/其他</option>
+          </select>
+        </label>
+        <label>
+          任务类型
+          <select id="editTaskTypeInput">
+            <option value="test_paper">试卷</option>
+            <option value="exercise_set">习题/刷题</option>
+            <option value="essay">作文/写作</option>
+            <option value="reading">阅读</option>
+            <option value="recitation">背诵</option>
+            <option value="vocabulary">单词/词组</option>
+            <option value="mistake_review">错题整理</option>
+            <option value="chapter_review">章节复习</option>
+            <option value="preview">预习</option>
+            <option value="lab_report">实验报告</option>
+            <option value="group_work">小组作业</option>
+            <option value="presentation">展示/PPT</option>
+          </select>
+        </label>
+        <label>
+          难度
+          <select id="editDifficultyInput">
+            <option value="easy">简单</option>
+            <option value="medium">普通</option>
+            <option value="hard">困难</option>
+          </select>
+        </label>
+        <label>
+          预估时长（分钟，可选）
+          <input id="editEstimateInput" type="number" min="1" placeholder="例如：90">
+        </label>
+        <div class="modal-actions danger-row">
+          <button id="deleteTaskBtn" class="btn danger" type="button">删除任务</button>
+          <button id="saveTaskEditBtn" class="btn primary" type="button">保存任务</button>
         </div>
       </div>
     </div>

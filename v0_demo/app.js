@@ -56,8 +56,9 @@ const state = {
   checkins: [],
   planner: "none",
   activePage: "home",
+  planStale: localStorage.getItem("plan_stale") === "1",
+  editingTaskId: "",
   profileName: localStorage.getItem("profile_name") || "",
-  profileAvatar: localStorage.getItem("profile_avatar") || "./assets/default-avatar.png",
   selectedDate: formatDate(new Date()),
   timerSeconds: 0,
   timerRunning: false,
@@ -148,13 +149,21 @@ const ui = {
   timelineEditDescriptionInput: document.getElementById("timelineEditDescriptionInput"),
   deleteTimelineBlockBtn: document.getElementById("deleteTimelineBlockBtn"),
   saveTimelineBlockBtn: document.getElementById("saveTimelineBlockBtn"),
+  taskEditModal: document.getElementById("taskEditModal"),
+  closeTaskEditBtn: document.getElementById("closeTaskEditBtn"),
+  editTitleInput: document.getElementById("editTitleInput"),
+  editDeadlineInput: document.getElementById("editDeadlineInput"),
+  editSubjectInput: document.getElementById("editSubjectInput"),
+  editTaskTypeInput: document.getElementById("editTaskTypeInput"),
+  editDifficultyInput: document.getElementById("editDifficultyInput"),
+  editEstimateInput: document.getElementById("editEstimateInput"),
+  deleteTaskBtn: document.getElementById("deleteTaskBtn"),
+  saveTaskEditBtn: document.getElementById("saveTaskEditBtn"),
   authForm: document.getElementById("authForm"),
   accountProfileView: document.getElementById("accountProfileView"),
-  accountAvatarPreview: document.getElementById("accountAvatarPreview"),
   accountDisplayName: document.getElementById("accountDisplayName"),
   accountUsernameText: document.getElementById("accountUsernameText"),
   profileNameInput: document.getElementById("profileNameInput"),
-  profileAvatarInput: document.getElementById("profileAvatarInput"),
   saveProfileBtn: document.getElementById("saveProfileBtn"),
   profileLogoutBtn: document.getElementById("profileLogoutBtn"),
   authUsername: document.getElementById("authUsername"),
@@ -254,6 +263,12 @@ ui.saveTimelineBlockBtn.addEventListener("click", () => saveTimelineBlockEdit())
 ui.deleteTimelineBlockBtn.addEventListener("click", () => deleteTimelineBlockEdit());
 ui.saveProfileBtn.addEventListener("click", () => saveProfileSettings());
 ui.profileLogoutBtn.addEventListener("click", async () => logout());
+ui.closeTaskEditBtn.addEventListener("click", () => closeTaskEditor());
+ui.taskEditModal.addEventListener("click", (event) => {
+  if (event.target === ui.taskEditModal) closeTaskEditor();
+});
+ui.saveTaskEditBtn.addEventListener("click", () => saveTaskEdit());
+ui.deleteTaskBtn.addEventListener("click", () => deleteTaskFromEditor());
 
 ui.taskForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -289,6 +304,7 @@ ui.taskForm.addEventListener("submit", async (event) => {
     renderTimeline();
     renderPlanList();
     showTaskListView();
+    markPlanStale();
     setFeedback("任务已添加。");
   } catch (error) {
     setFeedback(`添加任务失败：${error.message}`, true);
@@ -348,6 +364,11 @@ ui.timelineCanvas.addEventListener("click", async (event) => {
 
 ui.planList.addEventListener("click", async (event) => {
   if (!state.currentUser) return;
+  const menu = event.target.closest("[data-task-menu]");
+  if (menu) {
+    openTaskEditor(menu.dataset.taskMenu);
+    return;
+  }
   const check = event.target.closest(".task-check");
   if (!check) return;
   const taskId = check.dataset.taskId;
@@ -359,6 +380,7 @@ ui.planList.addEventListener("click", async (event) => {
     await refreshSelectedDatePlan();
     renderTimeline();
     renderPlanList();
+    markPlanStale();
   } catch (error) {
     setFeedback(`更新任务状态失败：${error.message}`, true);
   }
@@ -371,8 +393,6 @@ function renderAuthStatus() {
   ui.accountDisplayName.textContent = state.profileName || state.currentUser || "未登录";
   ui.accountUsernameText.textContent = state.currentUser ? `用户名：${state.currentUser}` : "--";
   ui.profileNameInput.value = state.profileName;
-  ui.profileAvatarInput.value = state.profileAvatar;
-  ui.accountAvatarPreview.src = state.profileAvatar || "./assets/default-avatar.png";
   const disabled = !state.currentUser;
   [ui.taskForm, ui.generateBtn, ui.availabilityForm, ui.planInfoBtn].forEach((el) => {
     if (!el) return;
@@ -390,9 +410,7 @@ function renderAuthStatus() {
 
 function saveProfileSettings() {
   state.profileName = ui.profileNameInput.value.trim();
-  state.profileAvatar = ui.profileAvatarInput.value.trim() || "./assets/default-avatar.png";
   localStorage.setItem("profile_name", state.profileName);
-  localStorage.setItem("profile_avatar", state.profileAvatar);
   renderAuthStatus();
   setFeedback("账号资料已保存。");
 }
@@ -535,6 +553,7 @@ async function generatePlanForToday() {
     await refreshSelectedDatePlan();
     renderDateSwitcher();
     renderTimeline();
+    clearPlanStale();
     const note = result.plan?.note ? ` ${result.plan.note}` : "";
     setFeedback(`计划已生成（${state.selectedDate}）。${note}`);
   } catch (error) {
@@ -601,6 +620,18 @@ function switchPage(pageName) {
   ui.navItems.forEach((item) => item.classList.toggle("nav-active", item.dataset.nav === pageName));
   if (pageName === "settings") showSettingsHome();
   if (pageName === "plan") showTaskListView();
+}
+
+function markPlanStale() {
+  state.planStale = true;
+  localStorage.setItem("plan_stale", "1");
+  renderTimeline();
+}
+
+function clearPlanStale() {
+  state.planStale = false;
+  localStorage.removeItem("plan_stale");
+  renderTimeline();
 }
 
 function showTaskCreateView() {
@@ -1031,26 +1062,12 @@ function collectAvailabilityPayload() {
 function renderTimeline() {
   const plan = state.selectedPlan;
   const blocks = plan?.scheduledBlocks || [];
-  ui.timelineHeader.textContent = `${state.selectedDate} 时间轴（点击方块可编辑）`;
+  ui.timelineHeader.innerHTML = `${escapeHtml(state.selectedDate)} 时间轴${state.planStale ? '<span class="stale-warning">任务更改后还没重新生成计划</span>' : ""}`;
   ui.timelineCanvas.innerHTML = "";
-  const startHour = 6;
-  const endHour = 24;
+  const content = document.createElement("div");
+  content.className = "timeline-content";
+  ui.timelineCanvas.appendChild(content);
   const pxPerMinute = 1;
-
-  for (let hour = startHour; hour <= endHour; hour += 1) {
-    const top = (hour - startHour) * 60 * pxPerMinute;
-    const line = document.createElement("div");
-    line.className = "time-line";
-    line.style.top = `${top}px`;
-    ui.timelineCanvas.appendChild(line);
-
-    const label = document.createElement("div");
-    label.className = "time-label";
-    label.style.top = `${top}px`;
-    label.textContent = `${String(hour).padStart(2, "0")}:00`;
-    ui.timelineCanvas.appendChild(label);
-  }
-
   const renderBlocks = [];
   blocks.forEach((block) => {
     const task = state.tasks.find((t) => t.id === block.taskId);
@@ -1093,6 +1110,26 @@ function renderTimeline() {
       });
     });
 
+  const minBlockStart = renderBlocks.length ? Math.min(...renderBlocks.map((block) => block.startMinute)) : 6 * 60;
+  const maxBlockEnd = renderBlocks.length ? Math.max(...renderBlocks.map((block) => block.endMinute)) : 24 * 60;
+  const startHour = Math.max(0, Math.floor(Math.max(0, minBlockStart - 60) / 60));
+  const endHour = Math.min(24, Math.max(startHour + 6, Math.ceil(Math.min(24 * 60, maxBlockEnd + 60) / 60)));
+  content.style.height = `${(endHour - startHour) * 60 * pxPerMinute}px`;
+
+  for (let hour = startHour; hour <= endHour; hour += 1) {
+    const top = (hour - startHour) * 60 * pxPerMinute;
+    const line = document.createElement("div");
+    line.className = "time-line";
+    line.style.top = `${top}px`;
+    content.appendChild(line);
+
+    const label = document.createElement("div");
+    label.className = "time-label";
+    label.style.top = `${top}px`;
+    label.textContent = `${String(hour).padStart(2, "0")}:00`;
+    content.appendChild(label);
+  }
+
   layoutTimelineBlocks(renderBlocks).forEach((block) => {
     const blockTop = (block.startMinute - startHour * 60) * pxPerMinute;
     const blockHeight = Math.max((block.endMinute - block.startMinute) * pxPerMinute, 20);
@@ -1108,7 +1145,7 @@ function renderTimeline() {
     el.style.right = "auto";
     el.style.width = `calc(${block.columnWidth}% - 8px)`;
     el.innerHTML = block.html;
-    ui.timelineCanvas.appendChild(el);
+    content.appendChild(el);
   });
 }
 
@@ -1298,10 +1335,77 @@ function renderPlanList() {
           <div class="task-title">${escapeHtml(task.title)}</div>
           <div class="task-meta">DDL: ${escapeHtml(task.deadline)} · ${escapeHtml(subjectLabel)} · ${escapeHtml(taskTypeLabel)} · ${escapeHtml(difficultyLabel)} · 预估 ${task.estimatedMinutes || 60} 分钟</div>
         </div>
+        <button class="task-menu-btn" type="button" data-task-menu="${task.id}" aria-label="编辑任务">⋯</button>
       </div>
     `;
     ui.planList.appendChild(li);
   });
+}
+
+function openTaskEditor(taskId) {
+  const task = state.tasks.find((item) => item.id === taskId);
+  if (!task) return;
+  state.editingTaskId = taskId;
+  ui.editTitleInput.value = task.title || "";
+  ui.editDeadlineInput.value = task.deadline || "";
+  ui.editSubjectInput.value = task.subject || "general";
+  ui.editTaskTypeInput.value = task.taskType || "exercise_set";
+  ui.editDifficultyInput.value = task.difficulty || "medium";
+  ui.editEstimateInput.value = task.estimatedMinutes || "";
+  ui.taskEditModal.classList.remove("hidden");
+}
+
+function closeTaskEditor() {
+  ui.taskEditModal.classList.add("hidden");
+  state.editingTaskId = "";
+}
+
+function readTaskEditorPayload() {
+  const title = ui.editTitleInput.value.trim();
+  const deadline = ui.editDeadlineInput.value;
+  if (!title || !deadline) throw new Error("请填写任务名称和截止日期");
+  const estimateRaw = ui.editEstimateInput.value.trim();
+  return {
+    title,
+    deadline,
+    subject: ui.editSubjectInput.value,
+    taskType: ui.editTaskTypeInput.value,
+    difficulty: ui.editDifficultyInput.value,
+    estimatedMinutes: estimateRaw ? Number.parseInt(estimateRaw, 10) : null,
+  };
+}
+
+async function saveTaskEdit() {
+  if (!state.editingTaskId) return;
+  try {
+    await api(`/tasks/${state.editingTaskId}`, {
+      method: "PUT",
+      body: JSON.stringify(readTaskEditorPayload()),
+    });
+    closeTaskEditor();
+    await refreshState();
+    await refreshSelectedDatePlan();
+    renderPlanList();
+    markPlanStale();
+    setFeedback("任务已更新，请重新生成计划。");
+  } catch (error) {
+    setFeedback(`保存任务失败：${error.message}`, true);
+  }
+}
+
+async function deleteTaskFromEditor() {
+  if (!state.editingTaskId) return;
+  try {
+    await api(`/tasks/${state.editingTaskId}`, { method: "DELETE" });
+    closeTaskEditor();
+    await refreshState();
+    await refreshSelectedDatePlan();
+    renderPlanList();
+    markPlanStale();
+    setFeedback("任务已删除，请重新生成计划。");
+  } catch (error) {
+    setFeedback(`删除任务失败：${error.message}`, true);
+  }
 }
 
 async function markTaskDone(taskId, done) {

@@ -289,6 +289,49 @@ def append_rag_sample(username: str, sample: dict[str, Any]) -> None:
         fp.write(json.dumps(sample, ensure_ascii=False) + "\n")
 
 
+def validate_task_payload(payload: dict[str, Any], partial: bool = False) -> dict[str, Any]:
+    cleaned: dict[str, Any] = {}
+    title = str(payload.get("title") or "").strip()
+    deadline = str(payload.get("deadline") or "").strip()
+    subject = str(payload.get("subject") or "general").strip()
+    task_type = str(payload.get("taskType") or "exercise_set").strip()
+    difficulty = str(payload.get("difficulty") or "medium").strip()
+    estimated = payload.get("estimatedMinutes")
+
+    if not partial or "title" in payload:
+        if not title:
+            raise ValueError("title is required")
+        cleaned["title"] = title
+    if not partial or "deadline" in payload:
+        if not deadline:
+            raise ValueError("deadline is required")
+        parse_date(deadline)
+        cleaned["deadline"] = deadline
+    if not partial or "subject" in payload:
+        if subject not in SUBJECT_LABELS:
+            raise ValueError("subject is invalid")
+        cleaned["subject"] = subject
+    if not partial or "taskType" in payload:
+        if task_type not in TASK_TYPE_LABELS:
+            raise ValueError("taskType is invalid")
+        cleaned["taskType"] = task_type
+    if not partial or "difficulty" in payload:
+        if difficulty not in DIFFICULTY_LABELS:
+            raise ValueError("difficulty is invalid")
+        cleaned["difficulty"] = difficulty
+    if (not partial or "estimatedMinutes" in payload) and estimated is not None:
+        try:
+            estimated = int(estimated)
+        except (TypeError, ValueError):
+            raise ValueError("estimatedMinutes must be an integer")
+        if estimated <= 0:
+            raise ValueError("estimatedMinutes must be > 0")
+        cleaned["estimatedMinutes"] = estimated
+    elif not partial or "estimatedMinutes" in payload:
+        cleaned["estimatedMinutes"] = None
+    return cleaned
+
+
 def get_current_username() -> str | None:
     auth = request.headers.get("Authorization", "").strip()
     token = ""
@@ -907,48 +950,56 @@ def create_task():
     if not username:
         return jsonify({"message": "unauthorized"}), 401
     payload = request.get_json(silent=True) or {}
-    title = str(payload.get("title") or "").strip()
-    deadline = str(payload.get("deadline") or "").strip()
-    subject = str(payload.get("subject") or "general").strip()
-    task_type = str(payload.get("taskType") or "exercise_set").strip()
-    difficulty = str(payload.get("difficulty") or "medium").strip()
-    estimated = payload.get("estimatedMinutes")
-
-    if not title or not deadline:
-        return jsonify({"message": "title and deadline are required"}), 400
-    if subject not in SUBJECT_LABELS:
-        return jsonify({"message": "subject is invalid"}), 400
-    if task_type not in TASK_TYPE_LABELS:
-        return jsonify({"message": "taskType is invalid"}), 400
-    if difficulty not in DIFFICULTY_LABELS:
-        return jsonify({"message": "difficulty is invalid"}), 400
     try:
-        parse_date(deadline)
-    except ValueError:
-        return jsonify({"message": "deadline must be YYYY-MM-DD"}), 400
-    if estimated is not None:
-        try:
-            estimated = int(estimated)
-        except (TypeError, ValueError):
-            return jsonify({"message": "estimatedMinutes must be an integer"}), 400
-        if estimated <= 0:
-            return jsonify({"message": "estimatedMinutes must be > 0"}), 400
+        cleaned = validate_task_payload(payload)
+    except ValueError as exc:
+        return jsonify({"message": str(exc)}), 400
 
     task = {
         "id": str(uuid4()),
-        "title": title,
-        "deadline": deadline,
-        "subject": subject,
-        "taskType": task_type,
-        "difficulty": difficulty,
-        "estimatedMinutes": estimated,
         "status": "todo",
+        **cleaned,
     }
     with store_lock:
         state = load_user_state(username)
         state["tasks"].append(task)
         save_user_state(username, state)
     return jsonify(task), 201
+
+
+@app.route("/api/tasks/<task_id>", methods=["PUT"])
+def update_task(task_id: str):
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
+    payload = request.get_json(silent=True) or {}
+    try:
+        cleaned = validate_task_payload(payload, partial=True)
+    except ValueError as exc:
+        return jsonify({"message": str(exc)}), 400
+    with store_lock:
+        state = load_user_state(username)
+        task = next((item for item in state["tasks"] if item.get("id") == task_id), None)
+        if task is None:
+            return jsonify({"message": "task not found"}), 404
+        task.update(cleaned)
+        save_user_state(username, state)
+    return jsonify(task)
+
+
+@app.route("/api/tasks/<task_id>", methods=["DELETE"])
+def delete_task(task_id: str):
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
+    with store_lock:
+        state = load_user_state(username)
+        before = len(state["tasks"])
+        state["tasks"] = [task for task in state["tasks"] if task.get("id") != task_id]
+        if len(state["tasks"]) == before:
+            return jsonify({"message": "task not found"}), 404
+        save_user_state(username, state)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/plans/generate", methods=["POST"])

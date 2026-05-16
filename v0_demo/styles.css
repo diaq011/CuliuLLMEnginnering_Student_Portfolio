@@ -243,6 +243,10 @@ h2 {
   gap: 8px;
 }
 
+.auth-form[hidden] {
+  display: none;
+}
+
 .auth-actions {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -549,6 +553,23 @@ textarea {
   gap: 10px;
 }
 
+.task-menu-btn {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--line);
+  border-radius: var(--radius-pixel);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #00000035;
+}
+
 .task-check {
   width: 20px;
   height: 20px;
@@ -751,13 +772,26 @@ textarea {
   margin-bottom: 10px;
 }
 
+.stale-warning {
+  display: inline-block;
+  margin-left: 10px;
+  color: var(--danger);
+  font-size: 0.82rem;
+}
+
 .timeline-canvas {
   position: relative;
   border: 3px solid var(--line);
   border-radius: var(--radius-pixel);
   background: rgba(255, 255, 255, 0.88);
-  height: 1080px;
-  overflow: hidden;
+  height: min(58dvh, 560px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.timeline-content {
+  position: relative;
+  min-height: 360px;
 }
 
 .time-line {
@@ -792,6 +826,13 @@ textarea {
   box-shadow: 2px 2px 0 #00000045;
 }
 
+.timeline-block p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .timeline-block.focus-block {
   background: var(--accent);
 }
@@ -800,12 +841,17 @@ textarea {
   color: #e8f2ff;
   font-size: 0.73rem;
   margin-top: 2px;
+  white-space: nowrap;
 }
 
 .timeline-block .desc {
   color: #edf7ff;
   font-size: 0.72rem;
   margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
 }
 
 .focus-overlay {
@@ -1029,9 +1075,7 @@ textarea {
 }
 
 .nav-item em {
-  font-style: normal;
-  font-size: 0.74rem;
-  font-weight: 700;
+  display: none;
 }
 
 .nav-item.nav-active {
