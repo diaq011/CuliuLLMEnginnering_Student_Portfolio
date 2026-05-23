@@ -38,7 +38,7 @@
       "taskType": "test_paper",
       "difficulty": "medium",
       "estimatedMinutes": null,
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "72522b50-f6e2-457f-ab12-2bdb493105e5",
@@ -82,7 +82,7 @@
     }
   ],
   "todayPlan": {
-    "date": "2026-05-16",
+    "date": "2026-05-17",
     "taskIds": [
       "6e277d9f-6321-405e-bcde-85382a76a16e",
       "7d1244ce-31ef-477e-8265-1b54f75e0b24",
@@ -95,62 +95,60 @@
     "scheduledBlocks": [
       {
         "taskId": "6e277d9f-6321-405e-bcde-85382a76a16e",
-        "startMinute": 570,
-        "endMinute": 615,
+        "startMinute": 600,
+        "endMinute": 645,
         "title": "化学第七章笔记整理",
         "deadline": "2026-05-18"
       },
       {
         "taskId": "7d1244ce-31ef-477e-8265-1b54f75e0b24",
-        "startMinute": 615,
-        "endMinute": 700,
+        "startMinute": 645,
+        "endMinute": 720,
+        "title": "物理练习卷",
+        "deadline": "2026-05-20"
+      },
+      {
+        "taskId": "7d1244ce-31ef-477e-8265-1b54f75e0b24",
+        "startMinute": 810,
+        "endMinute": 820,
         "title": "物理练习卷",
         "deadline": "2026-05-20"
       },
       {
         "taskId": "72522b50-f6e2-457f-ab12-2bdb493105e5",
-        "startMinute": 700,
-        "endMinute": 745,
+        "startMinute": 820,
+        "endMinute": 865,
         "title": "历史冷战时间线复习",
         "deadline": "2026-05-21"
       },
       {
         "taskId": "28741b34-89df-4bca-b551-d34bbcf7d842",
-        "startMinute": 745,
-        "endMinute": 750,
-        "title": "生物词汇练习",
-        "deadline": "2026-05-21"
-      },
-      {
-        "taskId": "28741b34-89df-4bca-b551-d34bbcf7d842",
-        "startMinute": 840,
-        "endMinute": 850,
+        "startMinute": 865,
+        "endMinute": 880,
         "title": "生物词汇练习",
         "deadline": "2026-05-21"
       },
       {
         "taskId": "b1c978b9-1343-4669-8aec-0b85b76bbccb",
-        "startMinute": 850,
-        "endMinute": 925,
+        "startMinute": 880,
+        "endMinute": 955,
         "title": "生物模拟题",
         "deadline": "2026-05-22"
       },
       {
         "taskId": "c23d1be9-e3e9-4913-97b6-ec812aba3ece",
-        "startMinute": 925,
-        "endMinute": 1010,
+        "startMinute": 955,
+        "endMinute": 1040,
         "title": "阅读理解",
         "deadline": "2026-05-22"
       }
     ],
-    "weekday": "sat",
+    "weekday": "sun",
     "note": "",
     "details": {
-      "rationale": "all tasks scheduled on separate days to optimize study time",
+      "rationale": "所有任务已按优先级和历史速度安排，确保符合约束条件",
       "risks": [
-        "{'risk_type': 'time', 'risk_description': 'overlapping with math and physics tasks'}",
-        "{'risk_type': 'historical', 'risk_description': 'available slot fit'}",
-        "{'risk_type': 'deadline', 'risk_description': 'not scheduled before 15 minutes'}"
+        "{'risk': '模拟题估计时间可能超出可用时间', 'note': '需确保所有任务的总估计分钟数不超过用户的上限，避免因时间冲突导致任务无法完成'}"
       ],
       "taskEstimates": [
         {
@@ -656,14 +654,14 @@
         }
       ],
       "planningWindow": {
-        "start": "2026-05-16",
+        "start": "2026-05-17",
         "end": "2026-05-22"
       }
     }
   },
   "plansByDate": {
-    "2026-05-16": {
-      "date": "2026-05-16",
+    "2026-05-17": {
+      "date": "2026-05-17",
       "taskIds": [
         "6e277d9f-6321-405e-bcde-85382a76a16e",
         "7d1244ce-31ef-477e-8265-1b54f75e0b24",
@@ -676,585 +674,60 @@
       "scheduledBlocks": [
         {
           "taskId": "6e277d9f-6321-405e-bcde-85382a76a16e",
-          "startMinute": 570,
-          "endMinute": 615,
+          "startMinute": 600,
+          "endMinute": 645,
           "title": "化学第七章笔记整理",
           "deadline": "2026-05-18"
         },
         {
           "taskId": "7d1244ce-31ef-477e-8265-1b54f75e0b24",
-          "startMinute": 615,
-          "endMinute": 700,
+          "startMinute": 645,
+          "endMinute": 720,
+          "title": "物理练习卷",
+          "deadline": "2026-05-20"
+        },
+        {
+          "taskId": "7d1244ce-31ef-477e-8265-1b54f75e0b24",
+          "startMinute": 810,
+          "endMinute": 820,
           "title": "物理练习卷",
           "deadline": "2026-05-20"
         },
         {
           "taskId": "72522b50-f6e2-457f-ab12-2bdb493105e5",
-          "startMinute": 700,
-          "endMinute": 745,
+          "startMinute": 820,
+          "endMinute": 865,
           "title": "历史冷战时间线复习",
           "deadline": "2026-05-21"
         },
         {
           "taskId": "28741b34-89df-4bca-b551-d34bbcf7d842",
-          "startMinute": 745,
-          "endMinute": 750,
-          "title": "生物词汇练习",
-          "deadline": "2026-05-21"
-        },
-        {
-          "taskId": "28741b34-89df-4bca-b551-d34bbcf7d842",
-          "startMinute": 840,
-          "endMinute": 850,
+          "startMinute": 865,
+          "endMinute": 880,
           "title": "生物词汇练习",
           "deadline": "2026-05-21"
         },
         {
           "taskId": "b1c978b9-1343-4669-8aec-0b85b76bbccb",
-          "startMinute": 850,
-          "endMinute": 925,
+          "startMinute": 880,
+          "endMinute": 955,
           "title": "生物模拟题",
           "deadline": "2026-05-22"
         },
         {
           "taskId": "c23d1be9-e3e9-4913-97b6-ec812aba3ece",
-          "startMinute": 925,
-          "endMinute": 1010,
+          "startMinute": 955,
+          "endMinute": 1040,
           "title": "阅读理解",
           "deadline": "2026-05-22"
         }
       ],
-      "weekday": "sat",
-      "note": "",
-      "details": {
-        "rationale": "all tasks scheduled on separate days to optimize study time",
-        "risks": [
-          "{'risk_type': 'time', 'risk_description': 'overlapping with math and physics tasks'}",
-          "{'risk_type': 'historical', 'risk_description': 'available slot fit'}",
-          "{'risk_type': 'deadline', 'risk_description': 'not scheduled before 15 minutes'}"
-        ],
-        "taskEstimates": [
-          {
-            "taskId": "6e277d9f-6321-405e-bcde-85382a76a16e",
-            "title": "化学第七章笔记整理",
-            "estimatedMinutes": 45,
-            "reason": "基于历史样本中位数(45)",
-            "evidence_ids": []
-          },
-          {
-            "taskId": "7d1244ce-31ef-477e-8265-1b54f75e0b24",
-            "title": "物理练习卷",
-            "estimatedMinutes": 85,
-            "reason": "基于历史样本中位数(85)",
-            "evidence_ids": []
-          },
-          {
-            "taskId": "72522b50-f6e2-457f-ab12-2bdb493105e5",
-            "title": "历史冷战时间线复习",
-            "estimatedMinutes": 45,
-            "reason": "基于历史样本中位数(45)",
-            "evidence_ids": []
-          },
-          {
-            "taskId": "28741b34-89df-4bca-b551-d34bbcf7d842",
-            "title": "生物词汇练习",
-            "estimatedMinutes": 15,
-            "reason": "基于历史样本中位数(15)",
-            "evidence_ids": []
-          },
-          {
-            "taskId": "b1c978b9-1343-4669-8aec-0b85b76bbccb",
-            "title": "生物模拟题",
-            "estimatedMinutes": 75,
-            "reason": "基于历史样本中位数(75)",
-            "evidence_ids": []
-          },
-          {
-            "taskId": "c23d1be9-e3e9-4913-97b6-ec812aba3ece",
-            "title": "阅读理解",
-            "estimatedMinutes": 85,
-            "reason": "基于历史样本中位数(85)",
-            "evidence_ids": []
-          }
-        ],
-        "ragTopK": 5,
-        "ragExamples": [
-          {
-            "taskId": "6e277d9f-6321-405e-bcde-85382a76a16e",
-            "title": "化学第七章笔记整理",
-            "examples": [
-              {
-                "sample_id": "chemistry_chapter_review_middle_high_medium_164",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生复习一个化学单元（如金属）。",
-                "actual_minutes": 45,
-                "estimated_minutes": 45,
-                "estimated_minutes_min": 35,
-                "estimated_minutes_max": 55,
-                "subject": "chemistry",
-                "task_type": "chapter_review",
-                "difficulty": "medium",
-                "planning_advice": "默写方程式。",
-                "score": 0.782
-              },
-              {
-                "sample_id": "chemistry_chapter_review_senior_high_medium_035",
-                "source": "knowledge_base",
-                "task_title": "高中学生复习一个化学章节（如氧化还原反应），包括概念、方程式和习题。",
-                "actual_minutes": 55,
-                "estimated_minutes": 55,
-                "estimated_minutes_min": 45,
-                "estimated_minutes_max": 70,
-                "subject": "chemistry",
-                "task_type": "chapter_review",
-                "difficulty": "medium",
-                "planning_advice": "分两次完成。",
-                "score": 0.7807
-              },
-              {
-                "sample_id": "geography_chapter_review_senior_high_medium_046",
-                "source": "knowledge_base",
-                "task_title": "高中学生复习一个地理章节，包括自然地理或人文地理知识。",
-                "actual_minutes": 45,
-                "estimated_minutes": 45,
-                "estimated_minutes_min": 35,
-                "estimated_minutes_max": 55,
-                "subject": "geography",
-                "task_type": "chapter_review",
-                "difficulty": "medium",
-                "planning_advice": "结合地图记忆。",
-                "score": 0.484
-              },
-              {
-                "sample_id": "chemistry_mistake_review_exam_sprint_medium_075",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生整理15道化学错题（选择题或填空题）。",
-                "actual_minutes": 32,
-                "estimated_minutes": 32,
-                "estimated_minutes_min": 25,
-                "estimated_minutes_max": 40,
-                "subject": "chemistry",
-                "task_type": "mistake_review",
-                "difficulty": "medium",
-                "planning_advice": "晚间集中整理。",
-                "score": 0.484
-              },
-              {
-                "sample_id": "general_chapter_review_senior_high_medium_190",
-                "source": "knowledge_base",
-                "task_title": "高中学生进行跨章节综合复习（如理科综合）。",
-                "actual_minutes": 60,
-                "estimated_minutes": 60,
-                "estimated_minutes_min": 45,
-                "estimated_minutes_max": 75,
-                "subject": "general",
-                "task_type": "chapter_review",
-                "difficulty": "medium",
-                "planning_advice": "分科目梳理。",
-                "score": 0.484
-              }
-            ]
-          },
-          {
-            "taskId": "7d1244ce-31ef-477e-8265-1b54f75e0b24",
-            "title": "物理练习卷",
-            "examples": [
-              {
-                "sample_id": "physics_test_paper_exam_sprint_hard_065",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考物理模拟卷。",
-                "actual_minutes": 85,
-                "estimated_minutes": 85,
-                "estimated_minutes_min": 70,
-                "estimated_minutes_max": 100,
-                "subject": "physics",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "限时练习。",
-                "score": 0.7049
-              },
-              {
-                "sample_id": "physics_test_paper_middle_high_hard_108",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生完成一套中考物理模拟卷。",
-                "actual_minutes": 68,
-                "estimated_minutes": 68,
-                "estimated_minutes_min": 55,
-                "estimated_minutes_max": 80,
-                "subject": "physics",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "限时练习。",
-                "score": 0.6929
-              },
-              {
-                "sample_id": "physics_test_paper_senior_high_hard_027",
-                "source": "knowledge_base",
-                "task_title": "高中学生完成一套完整物理试卷，包括选择题、实验题和计算题。",
-                "actual_minutes": 85,
-                "estimated_minutes": 85,
-                "estimated_minutes_min": 70,
-                "estimated_minutes_max": 100,
-                "subject": "physics",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "安排在周末整块时间，像考试一样限时完成。",
-                "score": 0.6927
-              },
-              {
-                "sample_id": "math_test_paper_exam_sprint_medium_003",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
-                "actual_minutes": 100,
-                "estimated_minutes": 100,
-                "estimated_minutes_min": 80,
-                "estimated_minutes_max": 120,
-                "subject": "math",
-                "task_type": "test_paper",
-                "difficulty": "medium",
-                "planning_advice": "安排在上午或周末整块时间，严格按照考试时间练习。",
-                "score": 0.4989
-              },
-              {
-                "sample_id": "math_test_paper_middle_high_medium_052",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生完成一套完整数学试卷。",
-                "actual_minutes": 75,
-                "estimated_minutes": 75,
-                "estimated_minutes_min": 60,
-                "estimated_minutes_max": 90,
-                "subject": "math",
-                "task_type": "test_paper",
-                "difficulty": "medium",
-                "planning_advice": "周末限时练习。",
-                "score": 0.4944
-              }
-            ]
-          },
-          {
-            "taskId": "72522b50-f6e2-457f-ab12-2bdb493105e5",
-            "title": "历史冷战时间线复习",
-            "examples": [
-              {
-                "sample_id": "history_chapter_review_middle_high_medium_166",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生复习一个历史单元（如唐朝）。",
-                "actual_minutes": 40,
-                "estimated_minutes": 40,
-                "estimated_minutes_min": 30,
-                "estimated_minutes_max": 50,
-                "subject": "history",
-                "task_type": "chapter_review",
-                "difficulty": "medium",
-                "planning_advice": "列时间轴。",
-                "score": 0.782
-              },
-              {
-                "sample_id": "history_chapter_review_senior_high_medium_040",
-                "source": "knowledge_base",
-                "task_title": "高中学生复习一个历史章节，包括时间轴、重要事件、人物和意义。",
-                "actual_minutes": 45,
-                "estimated_minutes": 45,
-                "estimated_minutes_min": 35,
-                "estimated_minutes_max": 55,
-                "subject": "history",
-                "task_type": "chapter_review",
-                "difficulty": "medium",
-                "planning_advice": "结合时间轴记忆。",
-                "score": 0.7807
-              },
-              {
-                "sample_id": "geography_chapter_review_senior_high_medium_046",
-                "source": "knowledge_base",
-                "task_title": "高中学生复习一个地理章节，包括自然地理或人文地理知识。",
-                "actual_minutes": 45,
-                "estimated_minutes": 45,
-                "estimated_minutes_min": 35,
-                "estimated_minutes_max": 55,
-                "subject": "geography",
-                "task_type": "chapter_review",
-                "difficulty": "medium",
-                "planning_advice": "结合地图记忆。",
-                "score": 0.484
-              },
-              {
-                "sample_id": "history_exercise_set_exam_sprint_medium_059",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成20道历史选择题，快速检测。",
-                "actual_minutes": 30,
-                "estimated_minutes": 30,
-                "estimated_minutes_min": 25,
-                "estimated_minutes_max": 35,
-                "subject": "history",
-                "task_type": "exercise_set",
-                "difficulty": "medium",
-                "planning_advice": "限时训练。",
-                "score": 0.484
-              },
-              {
-                "sample_id": "history_test_paper_exam_sprint_medium_068",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考文综卷的历史部分（选择题+大题）。",
-                "actual_minutes": 60,
-                "estimated_minutes": 60,
-                "estimated_minutes_min": 50,
-                "estimated_minutes_max": 70,
-                "subject": "history",
-                "task_type": "test_paper",
-                "difficulty": "medium",
-                "planning_advice": "单独限时。",
-                "score": 0.484
-              }
-            ]
-          },
-          {
-            "taskId": "28741b34-89df-4bca-b551-d34bbcf7d842",
-            "title": "生物词汇练习",
-            "examples": [
-              {
-                "sample_id": "biology_vocabulary_senior_high_easy_149",
-                "source": "knowledge_base",
-                "task_title": "高中学生记忆20个生物术语（如细胞器名称）。",
-                "actual_minutes": 15,
-                "estimated_minutes": 15,
-                "estimated_minutes_min": 12,
-                "estimated_minutes_max": 18,
-                "subject": "biology",
-                "task_type": "vocabulary",
-                "difficulty": "easy",
-                "planning_advice": "碎片时间。",
-                "score": 0.792
-              },
-              {
-                "sample_id": "english_vocabulary_middle_high_easy_083",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生复习20个已学英语单词。",
-                "actual_minutes": 15,
-                "estimated_minutes": 15,
-                "estimated_minutes_min": 12,
-                "estimated_minutes_max": 20,
-                "subject": "english",
-                "task_type": "vocabulary",
-                "difficulty": "easy",
-                "planning_advice": "碎片时间。",
-                "score": 0.518
-              },
-              {
-                "sample_id": "english_vocabulary_exam_sprint_easy_145",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生快速复习30个已学单词。",
-                "actual_minutes": 20,
-                "estimated_minutes": 20,
-                "estimated_minutes_min": 15,
-                "estimated_minutes_max": 25,
-                "subject": "english",
-                "task_type": "vocabulary",
-                "difficulty": "easy",
-                "planning_advice": "早晨快速过。",
-                "score": 0.492
-              },
-              {
-                "sample_id": "chinese_vocabulary_middle_high_easy_146",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生记忆20个成语或词语释义。",
-                "actual_minutes": 12,
-                "estimated_minutes": 12,
-                "estimated_minutes_min": 10,
-                "estimated_minutes_max": 15,
-                "subject": "chinese",
-                "task_type": "vocabulary",
-                "difficulty": "easy",
-                "planning_advice": "碎片时间。",
-                "score": 0.492
-              },
-              {
-                "sample_id": "physics_vocabulary_senior_high_easy_147",
-                "source": "knowledge_base",
-                "task_title": "高中学生记忆15个物理术语（英文）。",
-                "actual_minutes": 13,
-                "estimated_minutes": 13,
-                "estimated_minutes_min": 10,
-                "estimated_minutes_max": 16,
-                "subject": "physics",
-                "task_type": "vocabulary",
-                "difficulty": "easy",
-                "planning_advice": "碎片时间。",
-                "score": 0.492
-              }
-            ]
-          },
-          {
-            "taskId": "b1c978b9-1343-4669-8aec-0b85b76bbccb",
-            "title": "生物模拟题",
-            "examples": [
-              {
-                "sample_id": "biology_test_paper_exam_sprint_hard_067",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考生物模拟卷。",
-                "actual_minutes": 60,
-                "estimated_minutes": 60,
-                "estimated_minutes_min": 50,
-                "estimated_minutes_max": 75,
-                "subject": "biology",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "限时练习。",
-                "score": 0.805
-              },
-              {
-                "sample_id": "biology_test_paper_senior_high_hard_037",
-                "source": "knowledge_base",
-                "task_title": "高中学生完成一套完整生物试卷，包括选择题、填空题和简答题。",
-                "actual_minutes": 60,
-                "estimated_minutes": 60,
-                "estimated_minutes_min": 50,
-                "estimated_minutes_max": 75,
-                "subject": "biology",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "周末限时完成。",
-                "score": 0.79
-              },
-              {
-                "sample_id": "physics_test_paper_exam_sprint_hard_065",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考物理模拟卷。",
-                "actual_minutes": 85,
-                "estimated_minutes": 85,
-                "estimated_minutes_min": 70,
-                "estimated_minutes_max": 100,
-                "subject": "physics",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "限时练习。",
-                "score": 0.498
-              },
-              {
-                "sample_id": "chemistry_test_paper_exam_sprint_hard_066",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考化学模拟卷。",
-                "actual_minutes": 75,
-                "estimated_minutes": 75,
-                "estimated_minutes_min": 60,
-                "estimated_minutes_max": 90,
-                "subject": "chemistry",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "限时练习。",
-                "score": 0.498
-              },
-              {
-                "sample_id": "math_test_paper_exam_sprint_hard_062",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括压轴题。",
-                "actual_minutes": 105,
-                "estimated_minutes": 105,
-                "estimated_minutes_min": 85,
-                "estimated_minutes_max": 120,
-                "subject": "math",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "严格按照考试时间练习。",
-                "score": 0.496
-              }
-            ]
-          },
-          {
-            "taskId": "c23d1be9-e3e9-4913-97b6-ec812aba3ece",
-            "title": "阅读理解",
-            "examples": [
-              {
-                "sample_id": "chinese_test_paper_middle_high_hard_107",
-                "source": "knowledge_base",
-                "task_title": "初中高年级学生完成一套中考语文模拟卷（含作文）。",
-                "actual_minutes": 85,
-                "estimated_minutes": 85,
-                "estimated_minutes_min": 70,
-                "estimated_minutes_max": 100,
-                "subject": "chinese",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "周末整块时间。",
-                "score": 0.788
-              },
-              {
-                "sample_id": "physics_test_paper_exam_sprint_hard_065",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考物理模拟卷。",
-                "actual_minutes": 85,
-                "estimated_minutes": 85,
-                "estimated_minutes_min": 70,
-                "estimated_minutes_max": 100,
-                "subject": "physics",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "限时练习。",
-                "score": 0.498
-              },
-              {
-                "sample_id": "chemistry_test_paper_exam_sprint_hard_066",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考化学模拟卷。",
-                "actual_minutes": 75,
-                "estimated_minutes": 75,
-                "estimated_minutes_min": 60,
-                "estimated_minutes_max": 90,
-                "subject": "chemistry",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "限时练习。",
-                "score": 0.498
-              },
-              {
-                "sample_id": "math_test_paper_exam_sprint_hard_062",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括压轴题。",
-                "actual_minutes": 105,
-                "estimated_minutes": 105,
-                "estimated_minutes_min": 85,
-                "estimated_minutes_max": 120,
-                "subject": "math",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "严格按照考试时间练习。",
-                "score": 0.496
-              },
-              {
-                "sample_id": "biology_test_paper_exam_sprint_hard_067",
-                "source": "knowledge_base",
-                "task_title": "冲刺阶段学生完成一套高考生物模拟卷。",
-                "actual_minutes": 60,
-                "estimated_minutes": 60,
-                "estimated_minutes_min": 50,
-                "estimated_minutes_max": 75,
-                "subject": "biology",
-                "task_type": "test_paper",
-                "difficulty": "hard",
-                "planning_advice": "限时练习。",
-                "score": 0.4944
-              }
-            ]
-          }
-        ],
-        "planningWindow": {
-          "start": "2026-05-16",
-          "end": "2026-05-22"
-        }
-      }
-    },
-    "2026-05-17": {
-      "date": "2026-05-17",
-      "taskIds": [],
-      "totalEstimatedMinutes": 0,
-      "scheduledBlocks": [],
       "weekday": "sun",
       "note": "",
       "details": {
-        "rationale": "all tasks scheduled on separate days to optimize study time",
+        "rationale": "所有任务已按优先级和历史速度安排，确保符合约束条件",
         "risks": [
-          "{'risk_type': 'time', 'risk_description': 'overlapping with math and physics tasks'}",
-          "{'risk_type': 'historical', 'risk_description': 'available slot fit'}",
-          "{'risk_type': 'deadline', 'risk_description': 'not scheduled before 15 minutes'}"
+          "{'risk': '模拟题估计时间可能超出可用时间', 'note': '需确保所有任务的总估计分钟数不超过用户的上限，避免因时间冲突导致任务无法完成'}"
         ],
         "taskEstimates": [
           {
@@ -1760,7 +1233,7 @@
           }
         ],
         "planningWindow": {
-          "start": "2026-05-16",
+          "start": "2026-05-17",
           "end": "2026-05-22"
         }
       }
@@ -1773,11 +1246,9 @@
       "weekday": "mon",
       "note": "",
       "details": {
-        "rationale": "all tasks scheduled on separate days to optimize study time",
+        "rationale": "所有任务已按优先级和历史速度安排，确保符合约束条件",
         "risks": [
-          "{'risk_type': 'time', 'risk_description': 'overlapping with math and physics tasks'}",
-          "{'risk_type': 'historical', 'risk_description': 'available slot fit'}",
-          "{'risk_type': 'deadline', 'risk_description': 'not scheduled before 15 minutes'}"
+          "{'risk': '模拟题估计时间可能超出可用时间', 'note': '需确保所有任务的总估计分钟数不超过用户的上限，避免因时间冲突导致任务无法完成'}"
         ],
         "taskEstimates": [
           {
@@ -2283,7 +1754,7 @@
           }
         ],
         "planningWindow": {
-          "start": "2026-05-16",
+          "start": "2026-05-17",
           "end": "2026-05-22"
         }
       }
@@ -2296,11 +1767,9 @@
       "weekday": "tue",
       "note": "",
       "details": {
-        "rationale": "all tasks scheduled on separate days to optimize study time",
+        "rationale": "所有任务已按优先级和历史速度安排，确保符合约束条件",
         "risks": [
-          "{'risk_type': 'time', 'risk_description': 'overlapping with math and physics tasks'}",
-          "{'risk_type': 'historical', 'risk_description': 'available slot fit'}",
-          "{'risk_type': 'deadline', 'risk_description': 'not scheduled before 15 minutes'}"
+          "{'risk': '模拟题估计时间可能超出可用时间', 'note': '需确保所有任务的总估计分钟数不超过用户的上限，避免因时间冲突导致任务无法完成'}"
         ],
         "taskEstimates": [
           {
@@ -2806,7 +2275,7 @@
           }
         ],
         "planningWindow": {
-          "start": "2026-05-16",
+          "start": "2026-05-17",
           "end": "2026-05-22"
         }
       }
@@ -2819,11 +2288,9 @@
       "weekday": "wed",
       "note": "",
       "details": {
-        "rationale": "all tasks scheduled on separate days to optimize study time",
+        "rationale": "所有任务已按优先级和历史速度安排，确保符合约束条件",
         "risks": [
-          "{'risk_type': 'time', 'risk_description': 'overlapping with math and physics tasks'}",
-          "{'risk_type': 'historical', 'risk_description': 'available slot fit'}",
-          "{'risk_type': 'deadline', 'risk_description': 'not scheduled before 15 minutes'}"
+          "{'risk': '模拟题估计时间可能超出可用时间', 'note': '需确保所有任务的总估计分钟数不超过用户的上限，避免因时间冲突导致任务无法完成'}"
         ],
         "taskEstimates": [
           {
@@ -3329,7 +2796,7 @@
           }
         ],
         "planningWindow": {
-          "start": "2026-05-16",
+          "start": "2026-05-17",
           "end": "2026-05-22"
         }
       }
@@ -3342,11 +2809,9 @@
       "weekday": "thu",
       "note": "",
       "details": {
-        "rationale": "all tasks scheduled on separate days to optimize study time",
+        "rationale": "所有任务已按优先级和历史速度安排，确保符合约束条件",
         "risks": [
-          "{'risk_type': 'time', 'risk_description': 'overlapping with math and physics tasks'}",
-          "{'risk_type': 'historical', 'risk_description': 'available slot fit'}",
-          "{'risk_type': 'deadline', 'risk_description': 'not scheduled before 15 minutes'}"
+          "{'risk': '模拟题估计时间可能超出可用时间', 'note': '需确保所有任务的总估计分钟数不超过用户的上限，避免因时间冲突导致任务无法完成'}"
         ],
         "taskEstimates": [
           {
@@ -3852,7 +3317,7 @@
           }
         ],
         "planningWindow": {
-          "start": "2026-05-16",
+          "start": "2026-05-17",
           "end": "2026-05-22"
         }
       }
@@ -3865,11 +3330,9 @@
       "weekday": "fri",
       "note": "",
       "details": {
-        "rationale": "all tasks scheduled on separate days to optimize study time",
+        "rationale": "所有任务已按优先级和历史速度安排，确保符合约束条件",
         "risks": [
-          "{'risk_type': 'time', 'risk_description': 'overlapping with math and physics tasks'}",
-          "{'risk_type': 'historical', 'risk_description': 'available slot fit'}",
-          "{'risk_type': 'deadline', 'risk_description': 'not scheduled before 15 minutes'}"
+          "{'risk': '模拟题估计时间可能超出可用时间', 'note': '需确保所有任务的总估计分钟数不超过用户的上限，避免因时间冲突导致任务无法完成'}"
         ],
         "taskEstimates": [
           {
@@ -4375,13 +3838,19 @@
           }
         ],
         "planningWindow": {
-          "start": "2026-05-16",
+          "start": "2026-05-17",
           "end": "2026-05-22"
         }
       }
     }
   },
   "checkins": [
+    {
+      "taskId": "7d1244ce-31ef-477e-8265-1b54f75e0b24",
+      "done": true,
+      "actualMinutes": null,
+      "checkedAt": "2026-05-17T11:09:03"
+    },
     {
       "taskId": "575800cd-87a3-4797-81ab-d914745aea4f",
       "done": true,
