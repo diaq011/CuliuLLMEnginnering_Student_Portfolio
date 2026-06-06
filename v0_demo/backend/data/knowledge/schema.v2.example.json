@@ -1,0 +1,93 @@
+{
+  "version": "2026-06-06",
+  "description": "J人模拟器 RAG 知识库 v2 — 五种 record_type 示例",
+  "record_types": {
+    "ontology": {
+      "record_type": "ontology",
+      "id": "ontology_task_test_paper",
+      "task_type": "test_paper",
+      "task_type_label": "试卷",
+      "aliases": ["卷子", "试卷", "套卷", "模拟卷", "真题卷"],
+      "default_work_unit": "set",
+      "quantity_patterns": ["(\\d+)张", "(\\d+)套", "(\\d+)页"],
+      "activity_nature": "output_heavy",
+      "primary_skills": ["审题", "计算", "书写"],
+      "interruptibility": "low",
+      "typical_subcomponents": ["choice_section", "fill_section", "solution_section"]
+    },
+    "subject_profile": {
+      "record_type": "subject_profile",
+      "id": "subject_profile_math",
+      "subject": "math",
+      "subject_label": "数学",
+      "cognitive_style": "high_calculation",
+      "error_recovery_cost": "high",
+      "fragmented_viable": false,
+      "p_type_slow_multiplier": 1.05
+    },
+    "unit_rate": {
+      "record_type": "unit_rate",
+      "id": "rate_math_test_paper_set",
+      "subject": "math",
+      "task_type": "test_paper",
+      "work_unit": "set",
+      "minutes_per_unit_p25": 72,
+      "minutes_per_unit_p50": 89,
+      "minutes_per_unit_p75": 110,
+      "setup_minutes": 8,
+      "fatigue_per_extra_unit": 1.1,
+      "difficulty_modifiers": {"easy": 0.8, "medium": 1.0, "hard": 1.25},
+      "grade_modifiers": {"middle_high": 0.88, "senior_high": 1.0, "exam_sprint": 1.12},
+      "evidence_note": "普通高中生一套数学卷；后端再乘 P_TYPE_SLOW_MULTIPLIER"
+    },
+    "task_template": {
+      "record_type": "task_template",
+      "id": "tpl_math_test_paper_standard",
+      "subject": "math",
+      "task_type": "test_paper",
+      "match_keywords": ["数学卷", "数学试卷", "数学模拟", "数学套卷"],
+      "default_unit": "set",
+      "rate_ref": "rate_math_test_paper_set",
+      "composition": [
+        {"component": "choice_fill", "share": 0.35, "cognitive_load": "medium"},
+        {"component": "solution", "share": 0.65, "cognitive_load": "high"}
+      ],
+      "decomposition_rules": [
+        {"when_unit_count_gte": 1, "strategy": "by_section", "chunk_label": "完成第{n}套选择题+填空", "share": 0.35},
+        {"when_unit_count_gte": 1, "strategy": "by_section", "chunk_label": "完成第{n}套解答题", "share": 0.65}
+      ],
+      "planning_constraints": {
+        "max_continuous_minutes": 45,
+        "min_gap_minutes": 10,
+        "avoid_same_day_types": ["essay", "chapter_review"],
+        "preferred_time_blocks": ["evening", "weekend"]
+      }
+    },
+    "calibration_case": {
+      "record_type": "calibration_case",
+      "id": "case_math_test_paper_3sets_001",
+      "subject": "math",
+      "task_type": "test_paper",
+      "work_unit": "set",
+      "unit_count": 3,
+      "difficulty": "medium",
+      "grade_band": "senior_high",
+      "observed_minutes": 340,
+      "observed_range": [300, 380],
+      "student_profile": "p_type_average",
+      "task_description": "高三学生周末完成3套数学模拟卷，含简单订正",
+      "deviation_factors": ["中途休息", "订正耗时"],
+      "source_type": "interview",
+      "confidence": 0.82,
+      "template_ref": "tpl_math_test_paper_standard"
+    },
+    "planning_rule": {
+      "record_type": "planning_rule",
+      "id": "rule_cognitive_load_daily_cap",
+      "rule_type": "daily_load_cap",
+      "applies_to": {"cognitive_load": "high"},
+      "constraint": "同一天 high 负荷任务累计不超过 90 分钟",
+      "rationale": "P人学生连续高强度任务完成率显著下降"
+    }
+  }
+}

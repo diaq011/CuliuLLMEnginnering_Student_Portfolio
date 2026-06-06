@@ -22,6 +22,11 @@
   box-sizing: border-box;
 }
 
+html {
+  min-height: 100%;
+  background: linear-gradient(180deg, var(--bg-sky), var(--bg-grass));
+}
+
 body {
   margin: 0;
   min-height: 100dvh;
@@ -591,6 +596,11 @@ textarea {
   box-shadow: 2px 2px 0 #00000045;
 }
 
+.task-check:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #00000035;
+}
+
 .task-check.checked {
   background: var(--accent);
   color: #fff;
@@ -694,6 +704,11 @@ textarea {
   box-shadow: 3px 3px 0 #00000035;
 }
 
+.week-day:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #00000035;
+}
+
 .week-day span {
   font-size: 0.7rem;
 }
@@ -777,6 +792,85 @@ textarea {
   margin-left: 10px;
   color: var(--danger);
   font-size: 0.82rem;
+}
+
+.shortage-panel {
+  border-color: rgba(204, 46, 46, 0.45);
+}
+
+.shortage-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(204, 46, 46, 0.08);
+  border: 1px solid rgba(204, 46, 46, 0.25);
+}
+
+.shortage-summary {
+  margin: 0 0 10px;
+  color: var(--danger);
+  line-height: 1.5;
+}
+
+.availability-chat-view {
+  display: flex;
+  flex-direction: column;
+  min-height: min(68dvh, 520px);
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 2px 12px;
+  min-height: 220px;
+  max-height: min(48dvh, 420px);
+}
+
+.chat-bubble {
+  max-width: 88%;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  line-height: 1.45;
+  word-break: break-word;
+  white-space: pre-wrap;
+  box-shadow: 2px 2px 0 #00000033;
+}
+
+.chat-bubble.user {
+  align-self: flex-end;
+  background: rgba(255, 107, 53, 0.92);
+  color: #fffdf8;
+}
+
+.chat-bubble.assistant {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.chat-bubble.pending {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+}
+
+.chat-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+  padding-top: 10px;
+  margin-top: auto;
+  border-top: 2px solid rgba(29, 27, 33, 0.12);
+}
+
+.chat-composer textarea {
+  min-height: 44px;
+  max-height: 120px;
+  resize: vertical;
 }
 
 .timeline-canvas {

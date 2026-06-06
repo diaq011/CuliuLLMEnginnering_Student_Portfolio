@@ -167,10 +167,42 @@
           </button>
         </div>
       </div>
+      <div id="availabilityModeSettings" class="settings-view card" hidden>
+        <div class="settings-detail-head">
+          <button id="backFromAvailabilityModeBtn" class="btn small" type="button">‹ 返回</button>
+          <h2>空闲时间段设置</h2>
+        </div>
+        <div class="settings-list">
+          <button id="openAvailabilityAiBtn" class="settings-entry" type="button">
+            <span>
+              <strong>AI 设置</strong>
+            </span>
+            <span class="settings-entry-arrow">›</span>
+          </button>
+          <button id="openAvailabilityManualBtn" class="settings-entry" type="button">
+            <span>
+              <strong>手动设置</strong>
+            </span>
+            <span class="settings-entry-arrow">›</span>
+          </button>
+        </div>
+      </div>
+      <div id="availabilityAiSettings" class="settings-view card availability-chat-view" hidden>
+        <div class="settings-detail-head">
+          <button id="backFromAvailabilityAiBtn" class="btn small" type="button">‹ 返回</button>
+          <h2>AI 设置空闲时间</h2>
+        </div>
+        <p class="hint">用自然语言描述你的空闲时间，AI 会自动解析并保存。例如：「工作日晚上 7 点到 9 点有空，周末下午 2 点到 5 点。」</p>
+        <div id="availabilityChatMessages" class="chat-messages" aria-live="polite"></div>
+        <form id="availabilityChatForm" class="chat-composer">
+          <textarea id="availabilityChatInput" rows="2" placeholder="输入你的空闲时间段…"></textarea>
+          <button id="availabilityChatSendBtn" class="btn primary" type="submit">发送</button>
+        </form>
+      </div>
       <div id="availabilitySettings" class="settings-view card" hidden>
         <div class="settings-detail-head">
           <button id="backSettingsBtn" class="btn small" type="button">‹ 返回</button>
-          <h2>每周空闲时间段</h2>
+          <h2>手动设置空闲时间</h2>
         </div>
         <p class="hint">每个时段都支持：下拉选择或手动输入。输入会自动规范为 HH:MM。</p>
         <form id="availabilityForm" class="form-grid">
@@ -387,6 +419,21 @@
     </div>
   </div>
 
+  <div id="timeShortageModal" class="modal hidden">
+    <div class="modal-panel shortage-panel">
+      <div class="modal-head">
+        <h3>时间不足</h3>
+      </div>
+      <div class="modal-body">
+        <p id="timeShortageSummary" class="shortage-summary">即使排满所有空闲时段，仍无法在截止日期前完成全部任务。</p>
+        <div class="modal-actions">
+          <button id="timeShortageDetailBtn" class="btn" type="button">查看详情</button>
+          <button id="closeTimeShortageBtn" class="btn small" type="button">知道了</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="planInfoModal" class="modal hidden">
     <div class="modal-panel">
       <div class="modal-head">
@@ -394,6 +441,11 @@
         <button id="closePlanInfoBtn" class="btn small" type="button">关闭</button>
       </div>
       <div class="modal-body">
+        <section id="planShortageSection" class="shortage-section" hidden>
+          <h4>时间不足详情</h4>
+          <p id="planShortageSummary" class="shortage-summary"></p>
+          <ul id="planShortageTaskList" class="list compact"></ul>
+        </section>
         <h4>本次计划的理由与风险</h4>
         <p id="planReasonText">暂无</p>
         <ul id="planRiskList" class="list compact"></ul>

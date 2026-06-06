@@ -16,13 +16,22 @@ from uuid import uuid4
 
 from flask import Flask, jsonify, request, send_from_directory
 
+from knowledge_rag import (
+    build_evidence_package,
+    clamp_task_minutes,
+    evidence_to_rag_examples,
+    fallback_estimate_from_package,
+    index_knowledge_by_type,
+)
+
 app = Flask(__name__)
 store_lock = Lock()
 FRONTEND_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(__file__).resolve().parent / "data"
 USERS_FILE = DATA_DIR / "users.json"
 USER_DATA_DIR = DATA_DIR / "users"
-KNOWLEDGE_FILE = DATA_DIR / "knowledge" / "task_duration_knowledge.jsonl"
+KNOWLEDGE_FILE = DATA_DIR / "knowledge" / "task_knowledge_v2.jsonl"
+KNOWLEDGE_FILE_LEGACY = DATA_DIR / "knowledge" / "task_duration_knowledge.jsonl"
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
@@ -33,9 +42,11 @@ APP_PORT = int(os.getenv("APP_PORT", "5000"))
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
 RAG_TIME_DECAY_DAYS = int(os.getenv("RAG_TIME_DECAY_DAYS", "30"))
 RAG_MIN_CONFIDENCE = float(os.getenv("RAG_MIN_CONFIDENCE", "0.08"))
+P_TYPE_SLOW_MULTIPLIER = float(os.getenv("P_TYPE_SLOW_MULTIPLIER", "1.18"))
+ESTIMATE_PERCENTILE = os.getenv("ESTIMATE_PERCENTILE", "p50")
 
 ESTIMATE_MIN = 15
-ESTIMATE_MAX = 240
+ESTIMATE_MAX = 480
 
 WEEK_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 WEEKDAY_TO_KEY = {0: "mon", 1: "tue", 2: "wed", 3: "thu", 4: "fri", 5: "sat", 6: "sun"}
@@ -138,7 +149,7 @@ def minutes_to_hhmm(minutes: int) -> str:
 
 
 def clamp_minutes(value: int) -> int:
-    return max(ESTIMATE_MIN, min(value, ESTIMATE_MAX))
+    return clamp_task_minutes(value)
 
 
 def tokenize_title(text: str) -> set[str]:
@@ -264,10 +275,11 @@ def load_rag_samples(username: str) -> list[dict[str, Any]]:
 
 
 def load_knowledge_records() -> list[dict[str, Any]]:
-    if not KNOWLEDGE_FILE.exists():
+    source = KNOWLEDGE_FILE if KNOWLEDGE_FILE.exists() else KNOWLEDGE_FILE_LEGACY
+    if not source.exists():
         return []
     records: list[dict[str, Any]] = []
-    for line in KNOWLEDGE_FILE.read_text(encoding="utf-8").splitlines():
+    for line in source.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         try:
@@ -464,78 +476,23 @@ def compute_history_rag_examples(task: dict[str, Any], all_samples: list[dict[st
     return scored[: max(0, RAG_TOP_K)]
 
 
-def compute_knowledge_rag_examples(task: dict[str, Any], knowledge_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    tokens = tokenize_title(
-        " ".join(
-            [
-                task.get("title", ""),
-                SUBJECT_LABELS.get(task.get("subject", "general"), ""),
-                TASK_TYPE_LABELS.get(task.get("taskType", "exercise_set"), ""),
-                DIFFICULTY_LABELS.get(task.get("difficulty", "medium"), ""),
-            ]
-        )
-    )
-    subject = task.get("subject", "general")
-    task_type = task.get("taskType", "exercise_set")
-    difficulty = task.get("difficulty", "medium")
-    scored: list[dict[str, Any]] = []
-    for record in knowledge_records:
-        rid = str(record.get("id") or "").strip()
-        if not rid:
-            continue
-        searchable = " ".join(
-            [
-                str(record.get("description", "")),
-                str(record.get("planning_advice", "")),
-                str(record.get("subject_label", "")),
-                str(record.get("task_type_label", "")),
-                " ".join(str(tag) for tag in record.get("tags", []) if isinstance(tag, str)),
-            ]
-        )
-        rtokens = tokenize_title(searchable)
-        union = tokens | rtokens
-        text_score = 0.0 if not union else len(tokens & rtokens) / len(union)
-        subject_score = 1.0 if record.get("subject") == subject else 0.0
-        type_score = 1.0 if record.get("task_type") == task_type else 0.0
-        difficulty_score = 1.0 if record.get("difficulty") == difficulty else 0.0
-        try:
-            confidence = float(record.get("confidence", 0.55) or 0.55)
-        except Exception:
-            confidence = 0.55
-        score = text_score * 0.22 + subject_score * 0.28 + type_score * 0.28 + difficulty_score * 0.1 + confidence * 0.12
-        if score < RAG_MIN_CONFIDENCE:
-            continue
-        estimated = estimate_value_from_example(record)
-        if estimated <= 0:
-            continue
-        scored.append(
-            {
-                "sample_id": rid,
-                "source": "knowledge_base",
-                "task_title": record.get("description", ""),
-                "actual_minutes": estimated,
-                "estimated_minutes": estimated,
-                "estimated_minutes_min": record.get("estimated_minutes_min"),
-                "estimated_minutes_max": record.get("estimated_minutes_max"),
-                "subject": record.get("subject", "general"),
-                "task_type": record.get("task_type", "exercise_set"),
-                "difficulty": record.get("difficulty", "medium"),
-                "planning_advice": record.get("planning_advice", ""),
-                "score": round(score, 4),
-            }
-        )
-    scored.sort(key=lambda x: x["score"], reverse=True)
-    return scored[: max(0, RAG_TOP_K)]
-
-
-def compute_rag_examples(
+def build_task_rag_context(
     task: dict[str, Any],
     history_samples: list[dict[str, Any]],
-    knowledge_records: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    combined = compute_history_rag_examples(task, history_samples) + compute_knowledge_rag_examples(task, knowledge_records)
+    knowledge_indexed: dict[str, list[dict[str, Any]]],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    history_examples = compute_history_rag_examples(task, history_samples)
+    package = build_evidence_package(
+        task,
+        knowledge_indexed,
+        p_type_mult=P_TYPE_SLOW_MULTIPLIER,
+        estimate_percentile=ESTIMATE_PERCENTILE,
+        calibration_top_k=3,
+    )
+    knowledge_examples = evidence_to_rag_examples(package)
+    combined = history_examples + knowledge_examples
     combined.sort(key=lambda x: x.get("score", 0), reverse=True)
-    return combined[: max(0, RAG_TOP_K)]
+    return package, combined[: max(0, RAG_TOP_K)]
 
 
 def summarize_examples(examples: list[dict[str, Any]]) -> dict[str, float]:
@@ -551,17 +508,13 @@ def summarize_examples(examples: list[dict[str, Any]]) -> dict[str, float]:
     return {"count": n, "mean": mean, "median": median, "p75": vals[p75_index]}
 
 
-def fallback_estimate(task: dict[str, Any], examples: list[dict[str, Any]]) -> tuple[int, str]:
-    user_est = int(task.get("estimatedMinutes") or 0)
-    stats = summarize_examples(examples)
-    if stats["count"] > 0 and user_est > 0:
-        mixed = round(user_est * 0.6 + stats["median"] * 0.4)
-        return clamp_minutes(mixed), f"用户预估({user_est}) + 历史中位数({stats['median']})融合"
-    if stats["count"] > 0:
-        return clamp_minutes(int(stats["median"])), f"基于历史样本中位数({stats['median']})"
-    if user_est > 0:
-        return clamp_minutes(user_est), f"基于用户预估({user_est})，样本不足"
-    return 60, "无样本且无用户预估，采用默认 60 分钟"
+def fallback_estimate(
+    task: dict[str, Any],
+    examples: list[dict[str, Any]],
+    evidence_package: dict[str, Any] | None = None,
+) -> tuple[int, str]:
+    history_only = [e for e in examples if e.get("source") == "user_history"]
+    return fallback_estimate_from_package(task, evidence_package, history_only, clamp_minutes)
 
 
 def build_llm_prompt_payload(
@@ -570,14 +523,19 @@ def build_llm_prompt_payload(
     planning_start: str,
     planning_end: str,
     rag_examples_by_task: dict[str, list[dict[str, Any]]],
+    evidence_packages_by_task: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    evidence_packages_by_task = evidence_packages_by_task or {}
     task_inputs = []
     for task in tasks:
-        examples = rag_examples_by_task.get(task["id"], [])
+        tid = task["id"]
+        examples = rag_examples_by_task.get(tid, [])
+        package = evidence_packages_by_task.get(tid, {})
         stats = summarize_examples(examples)
+        parametric = package.get("parametric_estimate") or {}
         task_inputs.append(
             {
-                "task_id": task["id"],
+                "task_id": tid,
                 "title": task["title"],
                 "deadline": task["deadline"],
                 "subject": task.get("subject", "general"),
@@ -587,6 +545,9 @@ def build_llm_prompt_payload(
                 "difficulty": task.get("difficulty", "medium"),
                 "difficulty_label": DIFFICULTY_LABELS.get(task.get("difficulty", "medium"), "普通"),
                 "user_estimated_minutes": int(task.get("estimatedMinutes") or 0),
+                "evidence_package": package,
+                "parametric_estimate_minutes": parametric.get("picked") or parametric.get("p50"),
+                "decomposition_suggestion": package.get("decomposition_suggestion", []),
                 "rag_examples": examples,
                 "rag_stats": stats,
             }
@@ -595,11 +556,12 @@ def build_llm_prompt_payload(
         "planning_window": {"start_date": planning_start, "end_date": planning_end},
         "available_slots_by_weekday": availability,
         "tasks": task_inputs,
-        "user_profile": {"persona": "high_school_student"},
+        "user_profile": {"persona": "p_type_high_school_student", "p_type_slow_multiplier": P_TYPE_SLOW_MULTIPLIER},
         "constraints": {
             "priority_order": "deadline > slot_fit > history_speed",
             "deadline_rule": "each task can be split across multiple days but must be scheduled no later than its deadline",
             "estimate_range_minutes": [ESTIMATE_MIN, ESTIMATE_MAX],
+            "estimate_policy": "prefer evidence_package.parametric_estimate; adjust within +/-15% only when justified",
             "must_return_json": True,
         },
         "output_schema": {
@@ -616,6 +578,329 @@ def build_llm_prompt_payload(
             "notes": "string",
         },
     }
+
+
+def extract_json_object(text: str) -> dict[str, Any]:
+    cleaned = str(text or "").strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+    return json.loads(cleaned)
+
+
+DAY_NAME_TO_KEY = {
+    "mon": "mon",
+    "tue": "tue",
+    "wed": "wed",
+    "thu": "thu",
+    "fri": "fri",
+    "sat": "sat",
+    "sun": "sun",
+    "周一": "mon",
+    "星期一": "mon",
+    "周二": "tue",
+    "星期二": "tue",
+    "周三": "wed",
+    "星期三": "wed",
+    "周四": "thu",
+    "星期四": "thu",
+    "周五": "fri",
+    "星期五": "fri",
+    "周六": "sat",
+    "星期六": "sat",
+    "周日": "sun",
+    "周天": "sun",
+    "星期日": "sun",
+    "星期天": "sun",
+}
+
+CN_DIGIT = {
+    "零": 0,
+    "一": 1,
+    "二": 2,
+    "两": 2,
+    "三": 3,
+    "四": 4,
+    "五": 5,
+    "六": 6,
+    "七": 7,
+    "八": 8,
+    "九": 9,
+    "十": 10,
+}
+
+APPEND_KEYWORDS = ("还有", "再加", "另外", "额外", "再加上", "增加", "添加", "补上", "也多")
+REPLACE_KEYWORDS = ("全部重来", "重新设置", "清空", "覆盖", "替换全部")
+
+
+def parse_cn_hour_token(token: str) -> int | None:
+    token = str(token or "").strip().replace("：", ":").replace("点半", ":30")
+    if not token:
+        return None
+    if re.fullmatch(r"\d{1,2}", token):
+        hour = int(token)
+        return hour if 0 <= hour <= 23 else None
+    if re.fullmatch(r"\d{1,2}:\d{1,2}", token):
+        hour = int(token.split(":", 1)[0])
+        return hour if 0 <= hour <= 23 else None
+    match = re.fullmatch(r"([零一二两三四五六七八九十]+)(?:点|点钟|时)?(?::(\d{1,2}))?", token)
+    if not match:
+        return None
+    cn = match.group(1)
+    minute = int(match.group(2) or 0)
+    if cn == "十":
+        hour = 10
+    elif len(cn) == 2 and cn[0] == "十":
+        hour = 10 + CN_DIGIT.get(cn[1], 0)
+    elif len(cn) == 2 and cn[1] == "十":
+        hour = CN_DIGIT.get(cn[0], 0) * 10
+    else:
+        hour = CN_DIGIT.get(cn, 0)
+    if 0 <= hour <= 23 and 0 <= minute <= 59:
+        return hour
+    return None
+
+
+def format_hour_minute(hour: int, minute: int = 0) -> str:
+    return f"{hour:02d}:{minute:02d}"
+
+
+def mentioned_days_in_text(text: str) -> set[str]:
+    days: set[str] = set()
+    if re.search(r"工作日|周一到周五|周一至周五|星期一到星期五", text):
+        days.update(["mon", "tue", "wed", "thu", "fri"])
+    if re.search(r"周末|周六日|周六周日|星期六日|星期六和?星期天", text):
+        days.update(["sat", "sun"])
+    for label, key in DAY_NAME_TO_KEY.items():
+        if len(label) <= 3 and label in text:
+            days.add(key)
+    return days
+
+
+def extract_slots_from_user_message(message: str) -> list[dict[str, str]]:
+    text = str(message or "").strip()
+    if not text:
+        return []
+    days = mentioned_days_in_text(text) or set(WEEK_KEYS)
+    slots: list[dict[str, str]] = []
+
+    for match in re.finditer(
+        r"(\d{1,2}:\d{2})\s*(?:到|至|-)\s*(\d{1,2}:\d{2})",
+        text,
+    ):
+        start = match.group(1)
+        end = match.group(2)
+        for day in days:
+            slots.append({"day": day, "start": start, "end": end})
+
+    for match in re.finditer(
+        r"([零一二两三四五六七八九十\d]{1,4})(?:点|点钟|时)(?::(\d{1,2})|分(\d{1,2})|半)?\s*(?:到|至|-)\s*([零一二两三四五六七八九十\d]{1,4})(?:点|点钟|时)(?::(\d{1,2})|分(\d{1,2})|半)?",
+        text,
+    ):
+        left = match.group(1)
+        right = match.group(4)
+        left_minute = 30 if "半" in match.group(0).split("到")[0] else int(match.group(2) or match.group(3) or 0)
+        right_minute = 30 if "半" in match.group(0).split("到")[-1] else int(match.group(5) or match.group(6) or 0)
+        start_hour = parse_cn_hour_token(left)
+        end_hour = parse_cn_hour_token(right)
+        if start_hour is None or end_hour is None:
+            continue
+        start = format_hour_minute(start_hour, left_minute)
+        end = format_hour_minute(end_hour, right_minute)
+        for day in days:
+            slots.append({"day": day, "start": start, "end": end})
+
+    return slots
+
+
+def detect_merge_mode(message: str, parsed: dict[str, Any], current: dict[str, list[dict[str, str]]]) -> str:
+    mode = str(parsed.get("merge_mode", "")).strip()
+    if mode in {"append", "replace_all", "replace_mentioned_days"}:
+        return mode
+    text = str(message or "")
+    if any(keyword in text for keyword in REPLACE_KEYWORDS):
+        return "replace_all"
+    if any(keyword in text for keyword in APPEND_KEYWORDS):
+        return "append"
+    has_existing = any(current.get(key) for key in WEEK_KEYS)
+    if has_existing and mentioned_days_in_text(text):
+        return "append"
+    return "replace_all"
+
+
+def clone_availability(current: dict[str, list[dict[str, str]]]) -> dict[str, list[dict[str, str]]]:
+    return {key: [dict(slot) for slot in current.get(key, [])] for key in WEEK_KEYS}
+
+
+def append_slot(
+    target: dict[str, list[dict[str, str]]],
+    day: str,
+    start: str,
+    end: str,
+) -> None:
+    if day not in WEEK_KEYS or not start or not end:
+        return
+    candidate = {"start": start, "end": end}
+    if candidate not in target[day]:
+        target[day].append(candidate)
+
+
+def collect_changes_from_parsed(parsed: dict[str, Any], merge_mode: str = "replace_all") -> list[dict[str, str]]:
+    changes: list[dict[str, str]] = []
+    raw_changes = parsed.get("changes")
+    if isinstance(raw_changes, list):
+        for item in raw_changes:
+            if not isinstance(item, dict):
+                continue
+            day = str(item.get("day", "")).strip()
+            if day in DAY_NAME_TO_KEY:
+                day = DAY_NAME_TO_KEY[day]
+            start = str(item.get("start", "")).strip()
+            end = str(item.get("end", "")).strip()
+            if day in WEEK_KEYS and start and end:
+                changes.append({"day": day, "start": start, "end": end})
+    if merge_mode == "append":
+        return changes
+    raw = parsed.get("weekly_availability")
+    if raw is None:
+        raw = parsed.get("weeklyAvailability")
+    if isinstance(raw, dict):
+        for day, slots in raw.items():
+            key = DAY_NAME_TO_KEY.get(str(day), str(day))
+            if key not in WEEK_KEYS or not isinstance(slots, list):
+                continue
+            for slot in slots:
+                if not isinstance(slot, dict):
+                    continue
+                start = str(slot.get("start", "")).strip()
+                end = str(slot.get("end", "")).strip()
+                if start and end:
+                    changes.append({"day": key, "start": start, "end": end})
+    return changes
+
+
+def apply_availability_changes(
+    current: dict[str, list[dict[str, str]]],
+    parsed: dict[str, Any],
+    user_message: str,
+) -> dict[str, list[dict[str, str]]]:
+    merge_mode = detect_merge_mode(user_message, parsed, current)
+    changes = collect_changes_from_parsed(parsed, merge_mode)
+
+    if merge_mode == "append":
+        result = clone_availability(current)
+        if not changes:
+            changes = extract_slots_from_user_message(user_message)
+        else:
+            for item in extract_slots_from_user_message(user_message):
+                if item not in changes:
+                    changes.append(item)
+        for item in changes:
+            append_slot(result, item["day"], item["start"], item["end"])
+        return normalize_and_validate_availability(result)
+
+    if merge_mode == "replace_mentioned_days":
+        result = clone_availability(current)
+        mentioned = mentioned_days_in_text(user_message)
+        if not changes:
+            changes = extract_slots_from_user_message(user_message)
+        for day in mentioned:
+            result[day] = []
+        for item in changes:
+            day = item["day"]
+            if mentioned and day not in mentioned:
+                continue
+            append_slot(result, day, item["start"], item["end"])
+        return normalize_and_validate_availability(result)
+
+    payload = {key: [] for key in WEEK_KEYS}
+    for item in changes:
+        append_slot(payload, item["day"], item["start"], item["end"])
+    if not any(payload.values()):
+        raw = parsed.get("weekly_availability") or parsed.get("weeklyAvailability") or {}
+        if isinstance(raw, dict):
+            for key in WEEK_KEYS:
+                slots = raw.get(key, [])
+                if isinstance(slots, list):
+                    payload[key] = [dict(slot) for slot in slots if isinstance(slot, dict)]
+    return normalize_and_validate_availability(payload)
+
+
+AVAILABILITY_PARSE_SYSTEM_PROMPT = """你是学习规划助手的「空闲时间段解析器」。用户会用自然语言描述每周什么时候有空学习。
+
+请输出 JSON，格式如下：
+{
+  "reply": "用中文简短确认你理解到的变更",
+  "merge_mode": "append",
+  "changes": [
+    {"day": "mon", "start": "07:00", "end": "08:00"}
+  ]
+}
+
+merge_mode 取值：
+- append：用户在已有安排上新增时段（如“还有”“再加”“另外”）
+- replace_mentioned_days：只修改提到的日期（如“把周一改成...”）
+- replace_all：首次设置或用户要求全部重来
+
+规则：
+- day 必须是 mon,tue,wed,thu,fri,sat,sun
+- mon=周一, tue=周二, wed=周三, thu=周四, fri=周五, sat=周六, sun=周日
+- start/end 为 24 小时 HH:MM
+- append 模式只返回新增时段，不要重复返回已有 unchanged 时段
+- replace_all 模式请同时返回 weekly_availability，包含完整一周 7 天
+- 只输出 JSON，不要 markdown"""
+
+
+def parse_availability_llm_response(
+    content: str,
+    current: dict[str, list[dict[str, str]]],
+    user_message: str,
+) -> tuple[str, dict[str, list[dict[str, str]]] | None]:
+    try:
+        parsed = extract_json_object(content)
+    except json.JSONDecodeError:
+        fallback = extract_slots_from_user_message(user_message)
+        if fallback and any(keyword in user_message for keyword in APPEND_KEYWORDS):
+            try:
+                result = clone_availability(current)
+                for item in fallback:
+                    append_slot(result, item["day"], item["start"], item["end"])
+                normalized = normalize_and_validate_availability(result)
+                return "已根据你的描述追加空闲时段。", normalized
+            except ValueError:
+                pass
+        return "抱歉，我没有正确理解，请再描述一次你的空闲时间。", None
+    if not isinstance(parsed, dict):
+        return "抱歉，解析结果无效，请再试一次。", None
+    reply = str(parsed.get("reply", "")).strip() or "已解析你的空闲时间段。"
+    try:
+        normalized = apply_availability_changes(current, parsed, user_message)
+    except ValueError as exc:
+        return f"{reply}\n\n但时段格式有误：{exc}，请调整描述后重试。", None
+    return reply, normalized
+
+
+def build_availability_chat_messages(
+    history: list[dict[str, str]],
+    current_availability: dict[str, list[dict[str, str]]],
+) -> list[dict[str, str]]:
+    context_lines = []
+    for key in WEEK_KEYS:
+        slots = current_availability.get(key, [])
+        if slots:
+            slot_text = "、".join(f"{s['start']}-{s['end']}" for s in slots)
+            context_lines.append(f"{WEEK_LABELS[key]}：{slot_text}")
+        else:
+            context_lines.append(f"{WEEK_LABELS[key]}：无")
+    context = "当前已保存的空闲时间：\n" + "\n".join(context_lines)
+    messages: list[dict[str, str]] = [{"role": "system", "content": AVAILABILITY_PARSE_SYSTEM_PROMPT}]
+    messages.append({"role": "system", "content": context})
+    for item in history:
+        role = str(item.get("role", "")).strip()
+        content = str(item.get("content", "")).strip()
+        if role in {"user", "assistant"} and content:
+            messages.append({"role": role, "content": content})
+    return messages
 
 
 def ollama_model_ready() -> tuple[bool, str]:
@@ -775,6 +1060,51 @@ def schedule_tasks_until_deadline(
     return scheduled_blocks, unscheduled_ids
 
 
+def build_time_shortage_details(
+    tasks: list[dict[str, Any]],
+    estimated_minutes_by_id: dict[str, int],
+    scheduled_blocks: list[dict[str, Any]],
+    total_slot_minutes: int,
+) -> dict[str, Any]:
+    scheduled_by_task: dict[str, int] = {}
+    for block in scheduled_blocks:
+        task_id = block["taskId"]
+        scheduled_by_task[task_id] = scheduled_by_task.get(task_id, 0) + (
+            block["endMinute"] - block["startMinute"]
+        )
+
+    total_needed = sum(estimated_minutes_by_id.values())
+    total_scheduled = sum(scheduled_by_task.values())
+    affected_tasks: list[dict[str, Any]] = []
+    for task in tasks:
+        task_id = task["id"]
+        needed = int(estimated_minutes_by_id.get(task_id, 0))
+        scheduled = int(scheduled_by_task.get(task_id, 0))
+        if scheduled < needed:
+            affected_tasks.append(
+                {
+                    "taskId": task_id,
+                    "title": task.get("title", ""),
+                    "deadline": task.get("deadline", ""),
+                    "estimatedMinutes": needed,
+                    "scheduledMinutes": scheduled,
+                    "shortageMinutes": needed - scheduled,
+                }
+            )
+
+    shortage_minutes = max(0, total_needed - total_slot_minutes)
+    has_shortage = bool(affected_tasks) or shortage_minutes > 0
+
+    return {
+        "hasShortage": has_shortage,
+        "totalNeededMinutes": total_needed,
+        "totalAvailableMinutes": total_slot_minutes,
+        "totalScheduledMinutes": total_scheduled,
+        "shortageMinutes": shortage_minutes,
+        "affectedTasks": affected_tasks,
+    }
+
+
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
@@ -823,6 +1153,9 @@ def health():
             "ragTopK": RAG_TOP_K,
             "ragTimeDecayDays": RAG_TIME_DECAY_DAYS,
             "ragMinConfidence": RAG_MIN_CONFIDENCE,
+            "knowledgeFile": str(KNOWLEDGE_FILE.name),
+            "pTypeSlowMultiplier": P_TYPE_SLOW_MULTIPLIER,
+            "estimatePercentile": ESTIMATE_PERCENTILE,
         }
     )
 
@@ -944,6 +1277,73 @@ def save_availability():
     return jsonify({"ok": True, "weeklyAvailability": normalized})
 
 
+@app.route("/api/settings/availability/chat", methods=["POST"])
+def parse_availability_chat():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
+    payload = request.get_json(silent=True) or {}
+    message = str(payload.get("message") or "").strip()
+    if not message:
+        return jsonify({"message": "请输入要描述的空闲时间"}), 400
+    history = payload.get("history", [])
+    if not isinstance(history, list):
+        history = []
+    chat_history: list[dict[str, str]] = []
+    for item in history[-12:]:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role", "")).strip()
+        content = str(item.get("content", "")).strip()
+        if role in {"user", "assistant"} and content:
+            chat_history.append({"role": role, "content": content})
+
+    ok, model_msg = ollama_model_ready()
+    if not ok:
+        return jsonify({"message": f"Ollama 不可用：{model_msg}"}), 503
+
+    with store_lock:
+        state = load_user_state(username)
+        current_availability = state["weeklyAvailability"]
+
+    chat_history.append({"role": "user", "content": message})
+    ollama_messages = build_availability_chat_messages(chat_history[:-1], current_availability)
+    ollama_messages.append({"role": "user", "content": message})
+
+    try:
+        llm_res = ollama_chat(
+            {
+                "model": OLLAMA_MODEL,
+                "messages": ollama_messages,
+                "stream": False,
+                "format": "json",
+            }
+        )
+    except RuntimeError as exc:
+        msg = str(exc)
+        if "timed out" in msg.lower():
+            return jsonify({"message": f"模型响应超时（{OLLAMA_TIMEOUT_SEC} 秒内未返回）"}), 504
+        return jsonify({"message": msg}), 503
+
+    content = llm_res.get("message", {}).get("content", "{}")
+    reply, normalized = parse_availability_llm_response(content, current_availability, message)
+    applied = False
+    if normalized is not None:
+        with store_lock:
+            state = load_user_state(username)
+            state["weeklyAvailability"] = normalized
+            save_user_state(username, state)
+        applied = True
+
+    return jsonify(
+        {
+            "reply": reply,
+            "applied": applied,
+            "weeklyAvailability": normalized,
+        }
+    )
+
+
 @app.route("/api/tasks", methods=["POST"])
 def create_task():
     username = get_current_username()
@@ -1038,11 +1438,17 @@ def generate_plan_for_date():
 
     rag_samples = load_rag_samples(username)
     knowledge_records = load_knowledge_records()
+    knowledge_indexed = index_knowledge_by_type(knowledge_records)
     rag_examples_by_task: dict[str, list[dict[str, Any]]] = {}
+    evidence_packages_by_task: dict[str, dict[str, Any]] = {}
     for task in tasks:
-        rag_examples_by_task[task["id"]] = compute_rag_examples(task, rag_samples, knowledge_records)
+        package, examples = build_task_rag_context(task, rag_samples, knowledge_indexed)
+        evidence_packages_by_task[task["id"]] = package
+        rag_examples_by_task[task["id"]] = examples
 
-    prompt_context = build_llm_prompt_payload(tasks, availability, planning_start, planning_end, rag_examples_by_task)
+    prompt_context = build_llm_prompt_payload(
+        tasks, availability, planning_start, planning_end, rag_examples_by_task, evidence_packages_by_task,
+    )
     llm_payload = {
         "model": OLLAMA_MODEL,
         "messages": [
@@ -1052,7 +1458,8 @@ def generate_plan_for_date():
                     "You are a study planning assistant for constrained scheduling.\n"
                     "Hard rules:\n"
                     "1) Return JSON only, no markdown and no extra text.\n"
-                    "2) You must estimate each task duration using rag_examples evidence when available.\n"
+                    "2) You must estimate each task duration using evidence_package.parametric_estimate as baseline; cite rag_examples sample_id values.\n"
+                    "   Adjust only within +/-15% unless evidence_package.warnings justify more.\n"
                     "3) Priority must follow: deadline > available slot fit > historical completion speed.\n"
                     "4) A task can be split across multiple days, but never scheduled after its deadline.\n"
                     "5) If evidence is insufficient, explicitly state the risk.\n"
@@ -1083,12 +1490,13 @@ def generate_plan_for_date():
     for task in tasks:
         task_id = task["id"]
         task_examples = rag_examples_by_task.get(task_id, [])
+        task_package = evidence_packages_by_task.get(task_id, {})
         if task_id in est_map and est_map[task_id]["evidence_ids"]:
             est_val = clamp_minutes(int(est_map[task_id]["estimated_minutes"]))
             reason = est_map[task_id]["reason"]
             evidence_ids = est_map[task_id]["evidence_ids"]
         else:
-            est_val, fallback_reason = fallback_estimate(task, task_examples)
+            est_val, fallback_reason = fallback_estimate(task, task_examples, task_package)
             reason = fallback_reason if task_id not in est_map else f"{est_map[task_id]['reason']}；证据无效已回退"
             evidence_ids = []
         estimated_minutes_by_id[task_id] = est_val
@@ -1143,6 +1551,13 @@ def generate_plan_for_date():
             }
         )
 
+    time_shortage = build_time_shortage_details(
+        tasks,
+        estimated_minutes_by_id,
+        scheduled_blocks,
+        total_slot_minutes,
+    )
+
     details = {
         "rationale": llm_notes or "计划按DDL优先，并允许任务拆分到多个日期，只在用户空闲时段中安排。",
         "risks": risks,
@@ -1150,6 +1565,7 @@ def generate_plan_for_date():
         "ragTopK": RAG_TOP_K,
         "ragExamples": rag_examples_flat,
         "planningWindow": {"start": planning_start, "end": planning_end},
+        "timeShortage": time_shortage,
     }
 
     blocks_by_date: dict[str, list[dict[str, Any]]] = {}

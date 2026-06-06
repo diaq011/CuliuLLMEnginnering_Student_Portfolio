@@ -1,0 +1,74 @@
+{
+  "version": "2026-06-06",
+  "description": "RAG v2 参数化估时评测用例 — 对应课堂 3 组样本",
+  "persona": "p_type_high_school_student",
+  "p_type_slow_multiplier": 1.18,
+  "cases": [
+    {
+      "id": "case_tight_deadline",
+      "label": "任务少但时间紧",
+      "task": {
+        "title": "数学卷3张",
+        "subject": "math",
+        "taskType": "test_paper",
+        "difficulty": "medium",
+        "deadline": "下周一"
+      },
+      "expected": {
+        "unit_count": 3,
+        "p50_minutes_range": [280, 380],
+        "decomposition_min_chunks": 4,
+        "matched_template": "tpl_math_test_paper_standard"
+      },
+      "rubric": [
+        "unit_count 必须解析为 3",
+        "p50 落在 280-380 分钟（P人系数已计入）",
+        "拆解建议至少 4 段（每套卷拆选择+解答）",
+        "匹配 tpl_math_test_paper_standard 模板"
+      ]
+    },
+    {
+      "id": "case_multi_ddl",
+      "label": "任务多且多个 DDL 冲突",
+      "tasks": [
+        {"title": "数学卷3张", "subject": "math", "taskType": "test_paper", "difficulty": "medium"},
+        {"title": "英语作文2篇", "subject": "english", "taskType": "essay", "difficulty": "medium"},
+        {"title": "物理实验报告1份", "subject": "physics", "taskType": "lab_report", "difficulty": "medium"}
+      ],
+      "expected_per_task": {
+        "数学卷3张": {"p50_minutes_range": [280, 380]},
+        "英语作文2篇": {"p50_minutes_range": [90, 140], "unit_count": 2},
+        "物理实验报告1份": {"p50_minutes_range": [70, 100], "unit_count": 1}
+      },
+      "rubric": [
+        "各任务独立参数化估时，总量可检测时间不足",
+        "英语作文 unit_count=2，p50 在 90-140",
+        "实验报告匹配 lab_report 模板并含拆解建议"
+      ]
+    },
+    {
+      "id": "case_vague_input",
+      "label": "输入模糊、易导致计划失衡",
+      "task": {
+        "title": "背英语单词200个",
+        "subject": "english",
+        "taskType": "vocabulary",
+        "difficulty": "medium",
+        "deadline": "明天晚上"
+      },
+      "expected": {
+        "unit_count": 200,
+        "p50_minutes_range": [70, 110],
+        "decomposition_min_chunks": 1,
+        "matched_template": "tpl_english_vocabulary_standard"
+      },
+      "rubric": [
+        "unit_count 必须解析为 200",
+        "p50 落在 70-110 分钟",
+        "应匹配 vocabulary 模板并建议分段背诵",
+        "不应回退到默认 60 分钟"
+      ]
+    }
+  ],
+  "run_command": "cd v0_demo/backend && python3 test_knowledge_rag.py"
+}

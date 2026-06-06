@@ -1,4 +1,61 @@
-# RAG 知识库生成提示词
+# RAG 知识库设计（v2 参数化模型）
+
+> **当前生效文件**：[`v0_demo/backend/data/knowledge/task_knowledge_v2.jsonl`](../v0_demo/backend/data/knowledge/task_knowledge_v2.jsonl)  
+> **Schema 示例**：[`schema.v2.example.json`](../v0_demo/backend/data/knowledge/schema.v2.example.json)  
+> **生成脚本**：[`build_knowledge_v2.py`](../v0_demo/backend/data/knowledge/build_knowledge_v2.py)  
+> **估时管线**：[`knowledge_rag.py`](../v0_demo/backend/knowledge_rag.py)
+
+## 设计目标
+
+v2 将知识库从「200 条孤立点估计」升级为 **任务认知模型**，后端先完成参数化估时，LLM 仅在证据包基础上微调（±15%）并排程。基准速度对准 **不擅长规划的 P 人学生**（`P_TYPE_SLOW_MULTIPLIER=1.18`）。
+
+## 五层 record_type
+
+| record_type | 数量 | 作用 |
+|-------------|------|------|
+| `ontology` | 12 | 任务类型别名、默认单位、数量正则 |
+| `subject_profile` | 10 | 学科认知风格、P人学科乘子 |
+| `unit_rate` | 44 | **单位速率**（可缩放），非整任务点估计 |
+| `task_template` | 43 | 任务组成、拆解规则、排程约束 |
+| `calibration_case` | 200 | 标定案例（校验用，非主查表） |
+| `planning_rule` | 20 | 同日负荷、搭配禁忌、拆分策略 |
+
+## 估时公式
+
+```text
+setup + units × rate_p50 × fatigue_batches × difficulty × grade × subject_mult × P_TYPE(1.18)
+```
+
+- `word` / `problem` / `page`：线性累加，疲劳按批（50词/10题/3页）计算
+- `set` / `article` / `chapter`：逐单位疲劳系数
+
+## 后端管线
+
+```text
+parse_task_intent → match_task_template → compute_parametric_estimate
+  → retrieve_calibration_cases → build_evidence_package → LLM
+```
+
+环境变量：
+
+- `P_TYPE_SLOW_MULTIPLIER`（默认 `1.18`）
+- `ESTIMATE_PERCENTILE`（`p50` 或 `p75`）
+
+## 评测用例
+
+见 [`eval/rag_v2_eval_cases.json`](../eval/rag_v2_eval_cases.json)，运行：
+
+```bash
+cd v0_demo/backend && python3 test_knowledge_rag.py
+```
+
+---
+
+## v1 遗留说明（仅供参考）
+
+以下为 v1 扁平枚举式知识库的生成提示词，已由 v2 取代。旧文件保留于 `task_duration_knowledge.jsonl`。
+
+# RAG 知识库生成提示词（v1 遗留）
 
 下面这整份文档可以直接复制给一个**可以联网搜索的 AI**，让它生成适合本项目使用的 RAG 知识库。生成结果应保存为 JSONL 文件：
 

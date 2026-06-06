@@ -74,6 +74,8 @@ const state = {
   focusBubbleDrag: null,
   feedbackTimer: null,
   weeklyAvailability: Object.fromEntries(WEEK_KEYS.map((k) => [k, []])),
+  availabilityChatMessages: [],
+  availabilityChatSending: false,
   lastTap: { taskId: "", ts: 0 },
 };
 
@@ -105,7 +107,17 @@ const ui = {
   availabilityForm: document.getElementById("availabilityForm"),
   availabilityEditor: document.getElementById("availabilityEditor"),
   settingsHome: document.getElementById("settingsHome"),
+  availabilityModeSettings: document.getElementById("availabilityModeSettings"),
+  availabilityAiSettings: document.getElementById("availabilityAiSettings"),
   availabilitySettings: document.getElementById("availabilitySettings"),
+  openAvailabilityAiBtn: document.getElementById("openAvailabilityAiBtn"),
+  openAvailabilityManualBtn: document.getElementById("openAvailabilityManualBtn"),
+  backFromAvailabilityModeBtn: document.getElementById("backFromAvailabilityModeBtn"),
+  backFromAvailabilityAiBtn: document.getElementById("backFromAvailabilityAiBtn"),
+  availabilityChatMessages: document.getElementById("availabilityChatMessages"),
+  availabilityChatForm: document.getElementById("availabilityChatForm"),
+  availabilityChatInput: document.getElementById("availabilityChatInput"),
+  availabilityChatSendBtn: document.getElementById("availabilityChatSendBtn"),
   accountSettings: document.getElementById("accountSettings"),
   focusSettingsPage: document.getElementById("focusSettingsPage"),
   openAvailabilitySettingsBtn: document.getElementById("openAvailabilitySettingsBtn"),
@@ -126,6 +138,13 @@ const ui = {
   planReasonText: document.getElementById("planReasonText"),
   planRiskList: document.getElementById("planRiskList"),
   planEstimateList: document.getElementById("planEstimateList"),
+  planShortageSection: document.getElementById("planShortageSection"),
+  planShortageSummary: document.getElementById("planShortageSummary"),
+  planShortageTaskList: document.getElementById("planShortageTaskList"),
+  timeShortageModal: document.getElementById("timeShortageModal"),
+  timeShortageSummary: document.getElementById("timeShortageSummary"),
+  timeShortageDetailBtn: document.getElementById("timeShortageDetailBtn"),
+  closeTimeShortageBtn: document.getElementById("closeTimeShortageBtn"),
   focusOverlay: document.getElementById("focusOverlay"),
   focusMinimizeBtn: document.getElementById("focusMinimizeBtn"),
   focusSettingsBtn: document.getElementById("focusSettingsBtn"),
@@ -182,10 +201,18 @@ ui.homeAccountBtn.addEventListener("click", () => {
   switchPage("settings");
   showAccountSettings();
 });
-ui.openAvailabilitySettingsBtn.addEventListener("click", () => showSettingsAvailability());
+ui.openAvailabilitySettingsBtn.addEventListener("click", () => showAvailabilityModeSettings());
+ui.openAvailabilityAiBtn.addEventListener("click", () => showAvailabilityAiSettings());
+ui.openAvailabilityManualBtn.addEventListener("click", () => showAvailabilityManualSettings());
+ui.backFromAvailabilityModeBtn.addEventListener("click", () => showSettingsHome());
+ui.backFromAvailabilityAiBtn.addEventListener("click", () => showAvailabilityModeSettings());
+ui.backSettingsBtn.addEventListener("click", () => showAvailabilityModeSettings());
+ui.availabilityChatForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await sendAvailabilityChatMessage();
+});
 ui.openAccountSettingsBtn.addEventListener("click", () => showAccountSettings());
 ui.openFocusSettingsPageBtn.addEventListener("click", () => showFocusSettingsPage());
-ui.backSettingsBtn.addEventListener("click", () => showSettingsHome());
 ui.backAccountSettingsBtn.addEventListener("click", () => showSettingsHome());
 ui.backFocusSettingsBtn.addEventListener("click", () => showSettingsHome());
 ui.prevDayBtn.addEventListener("click", () => changeSelectedDate(-1));
@@ -203,6 +230,14 @@ ui.planInfoBtn.addEventListener("click", () => openPlanInfoModal());
 ui.closePlanInfoBtn.addEventListener("click", () => closePlanInfoModal());
 ui.planInfoModal.addEventListener("click", (e) => {
   if (e.target === ui.planInfoModal) closePlanInfoModal();
+});
+ui.closeTimeShortageBtn.addEventListener("click", () => closeTimeShortageModal());
+ui.timeShortageDetailBtn.addEventListener("click", () => {
+  closeTimeShortageModal();
+  openPlanInfoModal();
+});
+ui.timeShortageModal.addEventListener("click", (event) => {
+  if (event.target === ui.timeShortageModal) closeTimeShortageModal();
 });
 
 ui.authForm.addEventListener("submit", async (event) => {
@@ -556,6 +591,7 @@ async function generatePlanForToday() {
     clearPlanStale();
     const note = result.plan?.note ? ` ${result.plan.note}` : "";
     setFeedback(`计划已生成（${state.selectedDate}）。${note}`);
+    showTimeShortageModal(result.plan);
   } catch (error) {
     setFeedback(`生成计划失败：${error.message}`, true);
   } finally {
@@ -577,12 +613,73 @@ async function completeTaskFromBlock(taskId) {
   }
 }
 
+function formatDurationMinutes(minutes) {
+  const total = Math.max(0, Number(minutes) || 0);
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  if (hours > 0 && mins > 0) return `${hours} 小时 ${mins} 分钟`;
+  if (hours > 0) return `${hours} 小时`;
+  return `${mins} 分钟`;
+}
+
+function buildTimeShortageSummary(shortage) {
+  if (!shortage?.hasShortage) return "";
+  const parts = [
+    `即使排满所有空闲时段，仍无法在截止日期前完成全部任务。`,
+    `共需 ${formatDurationMinutes(shortage.totalNeededMinutes)}，可用 ${formatDurationMinutes(shortage.totalAvailableMinutes)}，`,
+    `缺少 ${formatDurationMinutes(shortage.shortageMinutes)}。`,
+  ];
+  const affected = shortage.affectedTasks || [];
+  if (affected.length > 0) {
+    parts.push(`涉及 ${affected.length} 个任务未能完全排入。`);
+  }
+  return parts.join("");
+}
+
+function renderTimeShortageDetails(shortage, summaryEl, listEl, sectionEl) {
+  if (!shortage?.hasShortage) {
+    if (sectionEl) sectionEl.hidden = true;
+    return;
+  }
+  if (sectionEl) sectionEl.hidden = false;
+  if (summaryEl) summaryEl.textContent = buildTimeShortageSummary(shortage);
+  if (!listEl) return;
+  listEl.innerHTML = "";
+  (shortage.affectedTasks || []).forEach((task) => {
+    const li = document.createElement("li");
+    li.textContent = `${task.title}（DDL ${task.deadline}）：还需 ${formatDurationMinutes(task.shortageMinutes)}（已排 ${formatDurationMinutes(task.scheduledMinutes)} / 需 ${formatDurationMinutes(task.estimatedMinutes)}）`;
+    listEl.appendChild(li);
+  });
+  if ((shortage.affectedTasks || []).length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "总空闲时间不足，建议减少任务量或增加空闲时段。";
+    listEl.appendChild(li);
+  }
+}
+
+function showTimeShortageModal(plan) {
+  const shortage = plan?.details?.timeShortage;
+  if (!shortage?.hasShortage) return;
+  ui.timeShortageSummary.textContent = buildTimeShortageSummary(shortage);
+  ui.timeShortageModal.classList.remove("hidden");
+}
+
+function closeTimeShortageModal() {
+  ui.timeShortageModal.classList.add("hidden");
+}
+
 function openPlanInfoModal() {
   const plan = state.selectedPlan || state.todayPlan;
   if (!plan || !plan.details) {
     setFeedback("当前日期暂无计划详情。", true);
     return;
   }
+  renderTimeShortageDetails(
+    plan.details.timeShortage,
+    ui.planShortageSummary,
+    ui.planShortageTaskList,
+    ui.planShortageSection,
+  );
   ui.planReasonText.textContent = plan.details.rationale || "暂无";
   ui.planRiskList.innerHTML = "";
   (plan.details.risks || []).forEach((risk) => {
@@ -646,34 +743,124 @@ function showTaskListView() {
   ui.openTaskCreateBtn.hidden = false;
 }
 
-function showSettingsHome() {
-  ui.settingsHome.hidden = false;
+function hideAllSettingsViews() {
+  ui.settingsHome.hidden = true;
+  ui.availabilityModeSettings.hidden = true;
+  ui.availabilityAiSettings.hidden = true;
   ui.availabilitySettings.hidden = true;
   ui.accountSettings.hidden = true;
   ui.focusSettingsPage.hidden = true;
 }
 
-function showSettingsAvailability() {
-  ui.settingsHome.hidden = true;
+function showSettingsHome() {
+  hideAllSettingsViews();
+  ui.settingsHome.hidden = false;
+}
+
+function showAvailabilityModeSettings() {
+  hideAllSettingsViews();
+  ui.availabilityModeSettings.hidden = false;
+}
+
+function showAvailabilityAiSettings() {
+  if (!state.currentUser) return setFeedback("请先登录", true);
+  hideAllSettingsViews();
+  ui.availabilityAiSettings.hidden = false;
+  if (state.availabilityChatMessages.length === 0) {
+    state.availabilityChatMessages = [
+      {
+        role: "assistant",
+        content: "你好，请用自然语言告诉我你每周什么时候有空。例如：「周一到周五晚上 7 点到 9 点，周末下午 2 点到 5 点。」",
+      },
+    ];
+  }
+  renderAvailabilityChat();
+  ui.availabilityChatInput.focus();
+}
+
+function showAvailabilityManualSettings() {
+  hideAllSettingsViews();
   ui.availabilitySettings.hidden = false;
-  ui.accountSettings.hidden = true;
-  ui.focusSettingsPage.hidden = true;
   renderAvailabilityEditor();
 }
 
 function showAccountSettings() {
-  ui.settingsHome.hidden = true;
-  ui.availabilitySettings.hidden = true;
+  hideAllSettingsViews();
   ui.accountSettings.hidden = false;
-  ui.focusSettingsPage.hidden = true;
 }
 
 function showFocusSettingsPage() {
-  ui.settingsHome.hidden = true;
-  ui.availabilitySettings.hidden = true;
-  ui.accountSettings.hidden = true;
+  hideAllSettingsViews();
   ui.focusSettingsPage.hidden = false;
   syncFocusSettingsInputs();
+}
+
+function renderAvailabilityChat() {
+  ui.availabilityChatMessages.innerHTML = "";
+  state.availabilityChatMessages.forEach((msg) => {
+    const bubble = document.createElement("div");
+    bubble.className = `chat-bubble ${msg.role === "user" ? "user" : "assistant"}`;
+    bubble.textContent = msg.content;
+    ui.availabilityChatMessages.appendChild(bubble);
+  });
+  if (state.availabilityChatSending) {
+    const pending = document.createElement("div");
+    pending.className = "chat-bubble assistant pending";
+    pending.textContent = "正在解析…";
+    ui.availabilityChatMessages.appendChild(pending);
+  }
+  ui.availabilityChatMessages.scrollTop = ui.availabilityChatMessages.scrollHeight;
+}
+
+function summarizeAvailabilityForChat(availability) {
+  const lines = WEEK_KEYS.map((day) => {
+    const slots = availability?.[day] || [];
+    if (!slots.length) return `${WEEK_LABELS[day]}：无`;
+    const slotText = slots.map((slot) => `${slot.start}-${slot.end}`).join("、");
+    return `${WEEK_LABELS[day]}：${slotText}`;
+  });
+  return lines.join("\n");
+}
+
+async function sendAvailabilityChatMessage() {
+  if (!state.currentUser) return setFeedback("请先登录", true);
+  if (state.availabilityChatSending) return;
+  const message = ui.availabilityChatInput.value.trim();
+  if (!message) return;
+  state.availabilityChatMessages.push({ role: "user", content: message });
+  ui.availabilityChatInput.value = "";
+  state.availabilityChatSending = true;
+  ui.availabilityChatSendBtn.disabled = true;
+  renderAvailabilityChat();
+  try {
+    const history = state.availabilityChatMessages.slice(0, -1).map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+    const result = await api("/settings/availability/chat", {
+      method: "POST",
+      body: JSON.stringify({ message, history }),
+    });
+    let reply = result.reply || "已处理你的描述。";
+    if (result.applied && result.weeklyAvailability) {
+      state.weeklyAvailability = result.weeklyAvailability;
+      reply = `${reply}\n\n已保存为：\n${summarizeAvailabilityForChat(result.weeklyAvailability)}`;
+    }
+    state.availabilityChatMessages.push({ role: "assistant", content: reply });
+  } catch (error) {
+    state.availabilityChatMessages.push({
+      role: "assistant",
+      content: `解析失败：${error.message}`,
+    });
+  } finally {
+    state.availabilityChatSending = false;
+    ui.availabilityChatSendBtn.disabled = false;
+    renderAvailabilityChat();
+  }
+}
+
+function showSettingsAvailability() {
+  showAvailabilityManualSettings();
 }
 
 function buildTimeOptions() {
