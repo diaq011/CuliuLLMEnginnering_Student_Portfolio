@@ -1,0 +1,87 @@
+{
+  "version": "2026-06-06",
+  "description": "空闲时段解析 Skill 标准样例",
+  "cases": [
+    {
+      "id": "available_weekday_evening",
+      "label": "纯有空 — 工作日晚上",
+      "input": {
+        "message": "工作日晚上7点到9点有空",
+        "current_weekly_availability": {
+          "mon": [], "tue": [], "wed": [], "thu": [], "fri": [], "sat": [], "sun": []
+        }
+      },
+      "expected": {
+        "has_time_info": true,
+        "merge_mode": "replace_all",
+        "weekly_availability": {
+          "mon": [{"start": "19:00", "end": "21:00"}],
+          "tue": [{"start": "19:00", "end": "21:00"}],
+          "wed": [{"start": "19:00", "end": "21:00"}],
+          "thu": [{"start": "19:00", "end": "21:00"}],
+          "fri": [{"start": "19:00", "end": "21:00"}],
+          "sat": [],
+          "sun": []
+        }
+      }
+    },
+    {
+      "id": "available_with_busy_exception",
+      "label": "有空 + 没空 — 周三晚上上课",
+      "input": {
+        "message": "周一到周五晚上7点到9点有空，但周三晚上要上课",
+        "current_weekly_availability": {
+          "mon": [], "tue": [], "wed": [], "thu": [], "fri": [], "sat": [], "sun": []
+        }
+      },
+      "expected": {
+        "has_time_info": true,
+        "merge_mode": "replace_all",
+        "polarity_trace_includes_busy_wed": true,
+        "weekly_availability": {
+          "mon": [{"start": "19:00", "end": "21:00"}],
+          "tue": [{"start": "19:00", "end": "21:00"}],
+          "wed": [],
+          "thu": [{"start": "19:00", "end": "21:00"}],
+          "fri": [{"start": "19:00", "end": "21:00"}],
+          "sat": [],
+          "sun": []
+        }
+      }
+    },
+    {
+      "id": "append_saturday",
+      "label": "追加 — 周六下午",
+      "input": {
+        "message": "还有周六下午2点到5点有空",
+        "current_weekly_availability": {
+          "mon": [{"start": "19:00", "end": "21:00"}],
+          "tue": [{"start": "19:00", "end": "21:00"}],
+          "wed": [], "thu": [], "fri": [], "sat": [], "sun": []
+        }
+      },
+      "expected": {
+        "has_time_info": true,
+        "merge_mode": "append",
+        "weekly_availability_sat": [{"start": "14:00", "end": "17:00"}],
+        "weekly_availability_mon_unchanged": [{"start": "19:00", "end": "21:00"}]
+      }
+    },
+    {
+      "id": "no_time_info",
+      "label": "无时间词 — 早退",
+      "input": {
+        "message": "我想设置一下",
+        "current_weekly_availability": {
+          "mon": [{"start": "19:00", "end": "21:00"}],
+          "tue": [], "wed": [], "thu": [], "fri": [], "sat": [], "sun": []
+        }
+      },
+      "expected": {
+        "has_time_info": false,
+        "applied": false,
+        "weekly_availability_unchanged": true
+      }
+    }
+  ]
+}

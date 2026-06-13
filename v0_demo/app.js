@@ -845,6 +845,8 @@ async function sendAvailabilityChatMessage() {
     if (result.applied && result.weeklyAvailability) {
       state.weeklyAvailability = result.weeklyAvailability;
       reply = `${reply}\n\n已保存为：\n${summarizeAvailabilityForChat(result.weeklyAvailability)}`;
+    } else if (result.has_time_info === false) {
+      reply = result.reply || "请具体描述你的空闲时间，例如：工作日晚上 7 点到 9 点有空。";
     }
     state.availabilityChatMessages.push({ role: "assistant", content: reply });
   } catch (error) {

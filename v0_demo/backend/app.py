@@ -6,6 +6,7 @@ import os
 import re
 import secrets
 import hashlib
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Lock
@@ -24,6 +25,12 @@ from knowledge_rag import (
     index_knowledge_by_type,
 )
 
+V0_DEMO_ROOT = Path(__file__).resolve().parent.parent
+if str(V0_DEMO_ROOT) not in sys.path:
+    sys.path.insert(0, str(V0_DEMO_ROOT))
+
+from skills.availability import AvailabilitySkillHandler, normalize_and_validate_availability  # noqa: E402
+
 app = Flask(__name__)
 store_lock = Lock()
 FRONTEND_DIR = Path(__file__).resolve().parent.parent
@@ -35,6 +42,7 @@ KNOWLEDGE_FILE_LEGACY = DATA_DIR / "knowledge" / "task_duration_knowledge.jsonl"
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
+AVAILABILITY_OLLAMA_MODEL = os.getenv("AVAILABILITY_OLLAMA_MODEL", "qwen3:8b")
 OLLAMA_TIMEOUT_SEC = int(os.getenv("OLLAMA_TIMEOUT_SEC", "90"))
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT = int(os.getenv("APP_PORT", "5000"))
@@ -155,33 +163,6 @@ def clamp_minutes(value: int) -> int:
 def tokenize_title(text: str) -> set[str]:
     parts = re.findall(r"[A-Za-z0-9\u4e00-\u9fff]+", str(text).lower())
     return set(parts)
-
-
-def normalize_and_validate_availability(payload: dict[str, Any]) -> dict[str, list[dict[str, str]]]:
-    normalized: dict[str, list[dict[str, str]]] = {}
-    for key in WEEK_KEYS:
-        day_ranges = payload.get(key, [])
-        if not isinstance(day_ranges, list):
-            raise ValueError(f"{WEEK_LABELS[key]} 必须是数组")
-        parsed: list[tuple[int, int]] = []
-        for item in day_ranges:
-            if not isinstance(item, dict):
-                raise ValueError(f"{WEEK_LABELS[key]} 的每个时段必须是对象")
-            start = str(item.get("start", "")).strip()
-            end = str(item.get("end", "")).strip()
-            if not start or not end:
-                raise ValueError(f"{WEEK_LABELS[key]} 时段必须包含 start 和 end")
-            s = parse_hhmm_to_minutes(start)
-            e = parse_hhmm_to_minutes(end)
-            if e <= s:
-                raise ValueError(f"{WEEK_LABELS[key]} 存在结束早于开始的时段")
-            parsed.append((s, e))
-        parsed.sort(key=lambda x: x[0])
-        for i in range(1, len(parsed)):
-            if parsed[i][0] < parsed[i - 1][1]:
-                raise ValueError(f"{WEEK_LABELS[key]} 存在重叠时段")
-        normalized[key] = [{"start": minutes_to_hhmm(s), "end": minutes_to_hhmm(e)} for s, e in parsed]
-    return normalized
 
 
 def default_user_state() -> dict[str, Any]:
@@ -580,330 +561,7 @@ def build_llm_prompt_payload(
     }
 
 
-def extract_json_object(text: str) -> dict[str, Any]:
-    cleaned = str(text or "").strip()
-    if cleaned.startswith("```"):
-        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-        cleaned = re.sub(r"\s*```$", "", cleaned)
-    return json.loads(cleaned)
-
-
-DAY_NAME_TO_KEY = {
-    "mon": "mon",
-    "tue": "tue",
-    "wed": "wed",
-    "thu": "thu",
-    "fri": "fri",
-    "sat": "sat",
-    "sun": "sun",
-    "周一": "mon",
-    "星期一": "mon",
-    "周二": "tue",
-    "星期二": "tue",
-    "周三": "wed",
-    "星期三": "wed",
-    "周四": "thu",
-    "星期四": "thu",
-    "周五": "fri",
-    "星期五": "fri",
-    "周六": "sat",
-    "星期六": "sat",
-    "周日": "sun",
-    "周天": "sun",
-    "星期日": "sun",
-    "星期天": "sun",
-}
-
-CN_DIGIT = {
-    "零": 0,
-    "一": 1,
-    "二": 2,
-    "两": 2,
-    "三": 3,
-    "四": 4,
-    "五": 5,
-    "六": 6,
-    "七": 7,
-    "八": 8,
-    "九": 9,
-    "十": 10,
-}
-
-APPEND_KEYWORDS = ("还有", "再加", "另外", "额外", "再加上", "增加", "添加", "补上", "也多")
-REPLACE_KEYWORDS = ("全部重来", "重新设置", "清空", "覆盖", "替换全部")
-
-
-def parse_cn_hour_token(token: str) -> int | None:
-    token = str(token or "").strip().replace("：", ":").replace("点半", ":30")
-    if not token:
-        return None
-    if re.fullmatch(r"\d{1,2}", token):
-        hour = int(token)
-        return hour if 0 <= hour <= 23 else None
-    if re.fullmatch(r"\d{1,2}:\d{1,2}", token):
-        hour = int(token.split(":", 1)[0])
-        return hour if 0 <= hour <= 23 else None
-    match = re.fullmatch(r"([零一二两三四五六七八九十]+)(?:点|点钟|时)?(?::(\d{1,2}))?", token)
-    if not match:
-        return None
-    cn = match.group(1)
-    minute = int(match.group(2) or 0)
-    if cn == "十":
-        hour = 10
-    elif len(cn) == 2 and cn[0] == "十":
-        hour = 10 + CN_DIGIT.get(cn[1], 0)
-    elif len(cn) == 2 and cn[1] == "十":
-        hour = CN_DIGIT.get(cn[0], 0) * 10
-    else:
-        hour = CN_DIGIT.get(cn, 0)
-    if 0 <= hour <= 23 and 0 <= minute <= 59:
-        return hour
-    return None
-
-
-def format_hour_minute(hour: int, minute: int = 0) -> str:
-    return f"{hour:02d}:{minute:02d}"
-
-
-def mentioned_days_in_text(text: str) -> set[str]:
-    days: set[str] = set()
-    if re.search(r"工作日|周一到周五|周一至周五|星期一到星期五", text):
-        days.update(["mon", "tue", "wed", "thu", "fri"])
-    if re.search(r"周末|周六日|周六周日|星期六日|星期六和?星期天", text):
-        days.update(["sat", "sun"])
-    for label, key in DAY_NAME_TO_KEY.items():
-        if len(label) <= 3 and label in text:
-            days.add(key)
-    return days
-
-
-def extract_slots_from_user_message(message: str) -> list[dict[str, str]]:
-    text = str(message or "").strip()
-    if not text:
-        return []
-    days = mentioned_days_in_text(text) or set(WEEK_KEYS)
-    slots: list[dict[str, str]] = []
-
-    for match in re.finditer(
-        r"(\d{1,2}:\d{2})\s*(?:到|至|-)\s*(\d{1,2}:\d{2})",
-        text,
-    ):
-        start = match.group(1)
-        end = match.group(2)
-        for day in days:
-            slots.append({"day": day, "start": start, "end": end})
-
-    for match in re.finditer(
-        r"([零一二两三四五六七八九十\d]{1,4})(?:点|点钟|时)(?::(\d{1,2})|分(\d{1,2})|半)?\s*(?:到|至|-)\s*([零一二两三四五六七八九十\d]{1,4})(?:点|点钟|时)(?::(\d{1,2})|分(\d{1,2})|半)?",
-        text,
-    ):
-        left = match.group(1)
-        right = match.group(4)
-        left_minute = 30 if "半" in match.group(0).split("到")[0] else int(match.group(2) or match.group(3) or 0)
-        right_minute = 30 if "半" in match.group(0).split("到")[-1] else int(match.group(5) or match.group(6) or 0)
-        start_hour = parse_cn_hour_token(left)
-        end_hour = parse_cn_hour_token(right)
-        if start_hour is None or end_hour is None:
-            continue
-        start = format_hour_minute(start_hour, left_minute)
-        end = format_hour_minute(end_hour, right_minute)
-        for day in days:
-            slots.append({"day": day, "start": start, "end": end})
-
-    return slots
-
-
-def detect_merge_mode(message: str, parsed: dict[str, Any], current: dict[str, list[dict[str, str]]]) -> str:
-    mode = str(parsed.get("merge_mode", "")).strip()
-    if mode in {"append", "replace_all", "replace_mentioned_days"}:
-        return mode
-    text = str(message or "")
-    if any(keyword in text for keyword in REPLACE_KEYWORDS):
-        return "replace_all"
-    if any(keyword in text for keyword in APPEND_KEYWORDS):
-        return "append"
-    has_existing = any(current.get(key) for key in WEEK_KEYS)
-    if has_existing and mentioned_days_in_text(text):
-        return "append"
-    return "replace_all"
-
-
-def clone_availability(current: dict[str, list[dict[str, str]]]) -> dict[str, list[dict[str, str]]]:
-    return {key: [dict(slot) for slot in current.get(key, [])] for key in WEEK_KEYS}
-
-
-def append_slot(
-    target: dict[str, list[dict[str, str]]],
-    day: str,
-    start: str,
-    end: str,
-) -> None:
-    if day not in WEEK_KEYS or not start or not end:
-        return
-    candidate = {"start": start, "end": end}
-    if candidate not in target[day]:
-        target[day].append(candidate)
-
-
-def collect_changes_from_parsed(parsed: dict[str, Any], merge_mode: str = "replace_all") -> list[dict[str, str]]:
-    changes: list[dict[str, str]] = []
-    raw_changes = parsed.get("changes")
-    if isinstance(raw_changes, list):
-        for item in raw_changes:
-            if not isinstance(item, dict):
-                continue
-            day = str(item.get("day", "")).strip()
-            if day in DAY_NAME_TO_KEY:
-                day = DAY_NAME_TO_KEY[day]
-            start = str(item.get("start", "")).strip()
-            end = str(item.get("end", "")).strip()
-            if day in WEEK_KEYS and start and end:
-                changes.append({"day": day, "start": start, "end": end})
-    if merge_mode == "append":
-        return changes
-    raw = parsed.get("weekly_availability")
-    if raw is None:
-        raw = parsed.get("weeklyAvailability")
-    if isinstance(raw, dict):
-        for day, slots in raw.items():
-            key = DAY_NAME_TO_KEY.get(str(day), str(day))
-            if key not in WEEK_KEYS or not isinstance(slots, list):
-                continue
-            for slot in slots:
-                if not isinstance(slot, dict):
-                    continue
-                start = str(slot.get("start", "")).strip()
-                end = str(slot.get("end", "")).strip()
-                if start and end:
-                    changes.append({"day": key, "start": start, "end": end})
-    return changes
-
-
-def apply_availability_changes(
-    current: dict[str, list[dict[str, str]]],
-    parsed: dict[str, Any],
-    user_message: str,
-) -> dict[str, list[dict[str, str]]]:
-    merge_mode = detect_merge_mode(user_message, parsed, current)
-    changes = collect_changes_from_parsed(parsed, merge_mode)
-
-    if merge_mode == "append":
-        result = clone_availability(current)
-        if not changes:
-            changes = extract_slots_from_user_message(user_message)
-        else:
-            for item in extract_slots_from_user_message(user_message):
-                if item not in changes:
-                    changes.append(item)
-        for item in changes:
-            append_slot(result, item["day"], item["start"], item["end"])
-        return normalize_and_validate_availability(result)
-
-    if merge_mode == "replace_mentioned_days":
-        result = clone_availability(current)
-        mentioned = mentioned_days_in_text(user_message)
-        if not changes:
-            changes = extract_slots_from_user_message(user_message)
-        for day in mentioned:
-            result[day] = []
-        for item in changes:
-            day = item["day"]
-            if mentioned and day not in mentioned:
-                continue
-            append_slot(result, day, item["start"], item["end"])
-        return normalize_and_validate_availability(result)
-
-    payload = {key: [] for key in WEEK_KEYS}
-    for item in changes:
-        append_slot(payload, item["day"], item["start"], item["end"])
-    if not any(payload.values()):
-        raw = parsed.get("weekly_availability") or parsed.get("weeklyAvailability") or {}
-        if isinstance(raw, dict):
-            for key in WEEK_KEYS:
-                slots = raw.get(key, [])
-                if isinstance(slots, list):
-                    payload[key] = [dict(slot) for slot in slots if isinstance(slot, dict)]
-    return normalize_and_validate_availability(payload)
-
-
-AVAILABILITY_PARSE_SYSTEM_PROMPT = """你是学习规划助手的「空闲时间段解析器」。用户会用自然语言描述每周什么时候有空学习。
-
-请输出 JSON，格式如下：
-{
-  "reply": "用中文简短确认你理解到的变更",
-  "merge_mode": "append",
-  "changes": [
-    {"day": "mon", "start": "07:00", "end": "08:00"}
-  ]
-}
-
-merge_mode 取值：
-- append：用户在已有安排上新增时段（如“还有”“再加”“另外”）
-- replace_mentioned_days：只修改提到的日期（如“把周一改成...”）
-- replace_all：首次设置或用户要求全部重来
-
-规则：
-- day 必须是 mon,tue,wed,thu,fri,sat,sun
-- mon=周一, tue=周二, wed=周三, thu=周四, fri=周五, sat=周六, sun=周日
-- start/end 为 24 小时 HH:MM
-- append 模式只返回新增时段，不要重复返回已有 unchanged 时段
-- replace_all 模式请同时返回 weekly_availability，包含完整一周 7 天
-- 只输出 JSON，不要 markdown"""
-
-
-def parse_availability_llm_response(
-    content: str,
-    current: dict[str, list[dict[str, str]]],
-    user_message: str,
-) -> tuple[str, dict[str, list[dict[str, str]]] | None]:
-    try:
-        parsed = extract_json_object(content)
-    except json.JSONDecodeError:
-        fallback = extract_slots_from_user_message(user_message)
-        if fallback and any(keyword in user_message for keyword in APPEND_KEYWORDS):
-            try:
-                result = clone_availability(current)
-                for item in fallback:
-                    append_slot(result, item["day"], item["start"], item["end"])
-                normalized = normalize_and_validate_availability(result)
-                return "已根据你的描述追加空闲时段。", normalized
-            except ValueError:
-                pass
-        return "抱歉，我没有正确理解，请再描述一次你的空闲时间。", None
-    if not isinstance(parsed, dict):
-        return "抱歉，解析结果无效，请再试一次。", None
-    reply = str(parsed.get("reply", "")).strip() or "已解析你的空闲时间段。"
-    try:
-        normalized = apply_availability_changes(current, parsed, user_message)
-    except ValueError as exc:
-        return f"{reply}\n\n但时段格式有误：{exc}，请调整描述后重试。", None
-    return reply, normalized
-
-
-def build_availability_chat_messages(
-    history: list[dict[str, str]],
-    current_availability: dict[str, list[dict[str, str]]],
-) -> list[dict[str, str]]:
-    context_lines = []
-    for key in WEEK_KEYS:
-        slots = current_availability.get(key, [])
-        if slots:
-            slot_text = "、".join(f"{s['start']}-{s['end']}" for s in slots)
-            context_lines.append(f"{WEEK_LABELS[key]}：{slot_text}")
-        else:
-            context_lines.append(f"{WEEK_LABELS[key]}：无")
-    context = "当前已保存的空闲时间：\n" + "\n".join(context_lines)
-    messages: list[dict[str, str]] = [{"role": "system", "content": AVAILABILITY_PARSE_SYSTEM_PROMPT}]
-    messages.append({"role": "system", "content": context})
-    for item in history:
-        role = str(item.get("role", "")).strip()
-        content = str(item.get("content", "")).strip()
-        if role in {"user", "assistant"} and content:
-            messages.append({"role": role, "content": content})
-    return messages
-
-
-def ollama_model_ready() -> tuple[bool, str]:
+def ollama_model_ready(model_name: str = OLLAMA_MODEL) -> tuple[bool, str]:
     req = Request(f"{OLLAMA_HOST}/api/tags", method="GET")
     try:
         with urlopen(req, timeout=3) as resp:
@@ -913,8 +571,8 @@ def ollama_model_ready() -> tuple[bool, str]:
     except Exception as exc:
         return False, f"Ollama check failed: {exc}"
     names = {model.get("name") for model in data.get("models", [])}
-    if OLLAMA_MODEL not in names:
-        return False, f"model not found: {OLLAMA_MODEL}"
+    if model_name not in names:
+        return False, f"model not found: {model_name}"
     return True, "ready"
 
 
@@ -1141,6 +799,7 @@ def assets(filename: str):
 @app.route("/api/health", methods=["GET"])
 def health():
     ok, msg = ollama_model_ready()
+    availability_ok, availability_msg = ollama_model_ready(AVAILABILITY_OLLAMA_MODEL)
     return jsonify(
         {
             "ok": True,
@@ -1149,6 +808,9 @@ def health():
             "ollamaModel": OLLAMA_MODEL,
             "ollamaModelReady": ok,
             "ollamaMessage": msg,
+            "availabilityOllamaModel": AVAILABILITY_OLLAMA_MODEL,
+            "availabilityOllamaModelReady": availability_ok,
+            "availabilityOllamaMessage": availability_msg,
             "ollamaTimeoutSec": OLLAMA_TIMEOUT_SEC,
             "ragTopK": RAG_TOP_K,
             "ragTimeDecayDays": RAG_TIME_DECAY_DAYS,
@@ -1298,7 +960,7 @@ def parse_availability_chat():
         if role in {"user", "assistant"} and content:
             chat_history.append({"role": role, "content": content})
 
-    ok, model_msg = ollama_model_ready()
+    ok, model_msg = ollama_model_ready(AVAILABILITY_OLLAMA_MODEL)
     if not ok:
         return jsonify({"message": f"Ollama 不可用：{model_msg}"}), 503
 
@@ -1306,42 +968,22 @@ def parse_availability_chat():
         state = load_user_state(username)
         current_availability = state["weeklyAvailability"]
 
-    chat_history.append({"role": "user", "content": message})
-    ollama_messages = build_availability_chat_messages(chat_history[:-1], current_availability)
-    ollama_messages.append({"role": "user", "content": message})
-
+    handler = AvailabilitySkillHandler(ollama_chat, AVAILABILITY_OLLAMA_MODEL)
     try:
-        llm_res = ollama_chat(
-            {
-                "model": OLLAMA_MODEL,
-                "messages": ollama_messages,
-                "stream": False,
-                "format": "json",
-            }
-        )
+        result = handler.handle(message, current_availability, chat_history)
     except RuntimeError as exc:
         msg = str(exc)
         if "timed out" in msg.lower():
             return jsonify({"message": f"模型响应超时（{OLLAMA_TIMEOUT_SEC} 秒内未返回）"}), 504
         return jsonify({"message": msg}), 503
 
-    content = llm_res.get("message", {}).get("content", "{}")
-    reply, normalized = parse_availability_llm_response(content, current_availability, message)
-    applied = False
-    if normalized is not None:
+    if result.applied and result.weekly_availability is not None:
         with store_lock:
             state = load_user_state(username)
-            state["weeklyAvailability"] = normalized
+            state["weeklyAvailability"] = result.weekly_availability
             save_user_state(username, state)
-        applied = True
 
-    return jsonify(
-        {
-            "reply": reply,
-            "applied": applied,
-            "weeklyAvailability": normalized,
-        }
-    )
+    return jsonify(result.to_api_dict())
 
 
 @app.route("/api/tasks", methods=["POST"])
