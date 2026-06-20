@@ -6,7 +6,7 @@
 | 版本 | v1.0 |
 | 日期 | 2026-06-06 |
 | 所属项目 | J人模拟器 — `v0_demo` |
-| 运行时 | 本地 Ollama（`OLLAMA_HOST` / `OLLAMA_MODEL`，默认 `qwen3:0.6b`） |
+| 运行时 | DeepSeek API（`DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL`，默认 `deepseek-chat`） |
 
 ---
 
@@ -170,13 +170,15 @@
 
 ---
 
-## 6. Ollama 集成
+## 6. LLM 集成
 
 | 配置 | 默认值 |
 |------|--------|
-| `OLLAMA_HOST` | `http://127.0.0.1:11434` |
-| `OLLAMA_MODEL` | `qwen3:0.6b` |
-| 接口 | `POST /api/chat`，`format: json` |
+| `DEEPSEEK_API_KEY` | 必需 |
+| `DEEPSEEK_API_URL` | `https://api.deepseek.com/v1` |
+| `DEEPSEEK_MODEL` | `deepseek-chat` |
+| `AVAILABILITY_DEEPSEEK_MODEL` | `deepseek-chat` |
+| 接口 | `POST /v1/chat/completions`（OpenAI 兼容），`response_format.type: json_object` |
 
 **LLM 输出要求**
 
@@ -187,7 +189,7 @@
 **回退**
 
 - LLM JSON 解析失败 → 规则解析 `extract_slots_from_user_message`（仅 available）
-- Ollama 不可用 → HTTP 503
+- DeepSeek API 不可用 → HTTP 503
 
 ---
 
@@ -238,7 +240,7 @@
 - [ ] busy 描述不出现在最终 `weekly_availability`
 - [ ] 与手动设置页 JSON 格式一致
 - [ ] 计划生成 API 可直接读取 `weeklyAvailability`
-- [ ] 本地 Ollama 不可用时，简单「7点到9点」句式可规则回退
+- [ ] DeepSeek API 不可用时，简单「7点到9点」句式可规则回退
 
 ---
 
@@ -247,7 +249,7 @@
 - 不存储 busy 黑名单表
 - 不做跨时区
 - 不解析具体日期（仅每周重复）
-- 不使用云端模型
+- ~~不使用云端模型~~（v1 已切换至 DeepSeek API）
 
 ---
 

@@ -3,7 +3,7 @@ name: availability-parser
 description: >-
   Parses natural-language weekly free-time descriptions for the J人模拟器 app.
   Detects time expressions, classifies available vs busy slots, outputs
-  weeklyAvailability JSON (Mon–Sun). Uses local Ollama. Use when implementing
+  weeklyAvailability JSON (Mon–Sun). Uses DeepSeek API. Use when implementing
   or debugging availability chat, 空闲时段, or POST /api/settings/availability/chat.
 ---
 
@@ -26,7 +26,7 @@ Examples: [examples.json](./examples.json)
 1. **Detect time** — If no time words, return `has_time_info: false`; do not change saved data.
 2. **Polarity** — Each slot is `available` or `busy`. Only **available** goes into `weekly_availability`.
 3. **Output format** — 7 keys: `mon`…`sun`; each value is `[{start, end}]` in `HH:MM`.
-4. **Ollama** — Local only: `OLLAMA_HOST` (default `http://127.0.0.1:11434`), `OLLAMA_MODEL` (default `qwen3:0.6b`).
+4. **LLM** — Uses DeepSeek API: `DEEPSEEK_API_KEY` (required), `DEEPSEEK_MODEL` (default `deepseek-chat`).
 
 ## Implementation location
 
@@ -70,4 +70,4 @@ Examples: [examples.json](./examples.json)
 
 ## Fallback
 
-If Ollama JSON fails, use rule-based `extract_slots_from_user_message` (available only).
+If LLM JSON fails, use rule-based `extract_slots_from_user_message` (available only).

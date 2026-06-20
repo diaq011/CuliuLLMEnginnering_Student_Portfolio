@@ -11,12 +11,18 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Lock
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 from uuid import uuid4
 
 from flask import Flask, jsonify, request, send_from_directory
 
+from deepseek_client import (
+    AVAILABILITY_DEEPSEEK_MODEL,
+    DEEPSEEK_MODEL,
+    DEEPSEEK_TIMEOUT_SEC,
+    deepseek_chat,
+    deepseek_model_ready,
+    extract_deepseek_content,
+)
 from knowledge_rag import (
     build_evidence_package,
     clamp_task_minutes,
@@ -40,10 +46,6 @@ USER_DATA_DIR = DATA_DIR / "users"
 KNOWLEDGE_FILE = DATA_DIR / "knowledge" / "task_knowledge_v2.jsonl"
 KNOWLEDGE_FILE_LEGACY = DATA_DIR / "knowledge" / "task_duration_knowledge.jsonl"
 
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
-AVAILABILITY_OLLAMA_MODEL = os.getenv("AVAILABILITY_OLLAMA_MODEL", "qwen3:8b")
-OLLAMA_TIMEOUT_SEC = int(os.getenv("OLLAMA_TIMEOUT_SEC", "90"))
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT = int(os.getenv("APP_PORT", "5000"))
 
@@ -561,43 +563,6 @@ def build_llm_prompt_payload(
     }
 
 
-def ollama_model_ready(model_name: str = OLLAMA_MODEL) -> tuple[bool, str]:
-    req = Request(f"{OLLAMA_HOST}/api/tags", method="GET")
-    try:
-        with urlopen(req, timeout=3) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except URLError as exc:
-        return False, f"cannot connect to Ollama: {exc}"
-    except Exception as exc:
-        return False, f"Ollama check failed: {exc}"
-    names = {model.get("name") for model in data.get("models", [])}
-    if model_name not in names:
-        return False, f"model not found: {model_name}"
-    return True, "ready"
-
-
-def ollama_chat(payload: dict[str, Any]) -> dict[str, Any]:
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = Request(
-        f"{OLLAMA_HOST}/api/chat",
-        data=body,
-        method="POST",
-        headers={"Content-Type": "application/json"},
-    )
-    try:
-        with urlopen(req, timeout=OLLAMA_TIMEOUT_SEC) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except HTTPError as exc:
-        raise RuntimeError(f"Ollama HTTP error: {exc.code}") from exc
-    except TimeoutError as exc:
-        raise RuntimeError(f"Ollama request timed out after {OLLAMA_TIMEOUT_SEC}s") from exc
-    except URLError as exc:
-        reason = getattr(exc, "reason", exc)
-        if isinstance(reason, TimeoutError):
-            raise RuntimeError(f"Ollama request timed out after {OLLAMA_TIMEOUT_SEC}s") from exc
-        raise RuntimeError(f"Ollama unavailable: {exc}") from exc
-    except json.JSONDecodeError as exc:
-        raise RuntimeError("Ollama returned non-JSON response") from exc
 
 
 def parse_llm_plan(
@@ -798,20 +763,17 @@ def assets(filename: str):
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    ok, msg = ollama_model_ready()
-    availability_ok, availability_msg = ollama_model_ready(AVAILABILITY_OLLAMA_MODEL)
+    ok, msg = deepseek_model_ready()
     return jsonify(
         {
             "ok": True,
             "time": iso_now(),
-            "ollamaHost": OLLAMA_HOST,
-            "ollamaModel": OLLAMA_MODEL,
-            "ollamaModelReady": ok,
-            "ollamaMessage": msg,
-            "availabilityOllamaModel": AVAILABILITY_OLLAMA_MODEL,
-            "availabilityOllamaModelReady": availability_ok,
-            "availabilityOllamaMessage": availability_msg,
-            "ollamaTimeoutSec": OLLAMA_TIMEOUT_SEC,
+            "deepseekApiUrl": os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com/v1"),
+            "deepseekModel": DEEPSEEK_MODEL,
+            "deepseekApiReady": ok,
+            "deepseekMessage": msg,
+            "availabilityDeepseekModel": AVAILABILITY_DEEPSEEK_MODEL,
+            "deepseekTimeoutSec": DEEPSEEK_TIMEOUT_SEC,
             "ragTopK": RAG_TOP_K,
             "ragTimeDecayDays": RAG_TIME_DECAY_DAYS,
             "ragMinConfidence": RAG_MIN_CONFIDENCE,
@@ -960,21 +922,21 @@ def parse_availability_chat():
         if role in {"user", "assistant"} and content:
             chat_history.append({"role": role, "content": content})
 
-    ok, model_msg = ollama_model_ready(AVAILABILITY_OLLAMA_MODEL)
+    ok, model_msg = deepseek_model_ready()
     if not ok:
-        return jsonify({"message": f"Ollama 不可用：{model_msg}"}), 503
+        return jsonify({"message": f"DeepSeek API 不可用：{model_msg}"}), 503
 
     with store_lock:
         state = load_user_state(username)
         current_availability = state["weeklyAvailability"]
 
-    handler = AvailabilitySkillHandler(ollama_chat, AVAILABILITY_OLLAMA_MODEL)
+    handler = AvailabilitySkillHandler(deepseek_chat, AVAILABILITY_DEEPSEEK_MODEL, is_deepseek=True)
     try:
         result = handler.handle(message, current_availability, chat_history)
     except RuntimeError as exc:
         msg = str(exc)
         if "timed out" in msg.lower():
-            return jsonify({"message": f"模型响应超时（{OLLAMA_TIMEOUT_SEC} 秒内未返回）"}), 504
+            return jsonify({"message": f"模型响应超时（{DEEPSEEK_TIMEOUT_SEC} 秒内未返回）"}), 504
         return jsonify({"message": msg}), 503
 
     if result.applied and result.weekly_availability is not None:
@@ -1074,9 +1036,9 @@ def generate_plan_for_date():
     if total_slot_minutes <= 0:
         return jsonify({"message": "从今天到任务DDL前都没有可用空闲时段，请先在设置中配置"}), 400
 
-    ok, model_msg = ollama_model_ready()
+    ok, model_msg = deepseek_model_ready()
     if not ok:
-        return jsonify({"message": f"Ollama 不可用：{model_msg}"}), 503
+        return jsonify({"message": f"DeepSeek API 不可用：{model_msg}"}), 503
 
     rag_samples = load_rag_samples(username)
     knowledge_records = load_knowledge_records()
@@ -1092,7 +1054,7 @@ def generate_plan_for_date():
         tasks, availability, planning_start, planning_end, rag_examples_by_task, evidence_packages_by_task,
     )
     llm_payload = {
-        "model": OLLAMA_MODEL,
+        "model": DEEPSEEK_MODEL,
         "messages": [
             {
                 "role": "system",
@@ -1116,13 +1078,14 @@ def generate_plan_for_date():
     }
 
     try:
-        llm_res = ollama_chat(llm_payload)
-        parsed = json.loads(llm_res.get("message", {}).get("content", "{}"))
+        llm_res = deepseek_chat(llm_payload)
+        content = extract_deepseek_content(llm_res)
+        parsed = json.loads(content)
         order, est_map, llm_risks, llm_notes = parse_llm_plan(tasks, parsed, rag_examples_by_task)
     except RuntimeError as exc:
         msg = str(exc)
         if "timed out" in msg.lower():
-            return jsonify({"message": f"模型响应超时（{OLLAMA_TIMEOUT_SEC} 秒内未返回）"}), 504
+            return jsonify({"message": f"模型响应超时（{DEEPSEEK_TIMEOUT_SEC} 秒内未返回）"}), 504
         return jsonify({"message": f"模型调用失败：{msg}"}), 502
     except Exception as exc:
         return jsonify({"message": f"模型解析失败：{exc}"}), 502
@@ -1248,7 +1211,7 @@ def generate_plan_for_date():
         state = load_user_state(username)
         state["plansByDate"] = generated_plans
         state["todayPlan"] = generated_plans.get(today_str())
-        state["lastPlanner"] = f"ollama:{OLLAMA_MODEL}+rag_top_k={RAG_TOP_K}"
+        state["lastPlanner"] = f"deepseek:{DEEPSEEK_MODEL}+rag_top_k={RAG_TOP_K}"
         save_user_state(username, state)
 
     plan = generated_plans.get(target_date) or {

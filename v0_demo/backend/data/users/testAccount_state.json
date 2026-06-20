@@ -3876,7 +3876,7 @@
       "checkedAt": "2026-05-15T22:34:54"
     }
   ],
-  "lastPlanner": "ollama:qwen3:0.6b+rag_top_k=5",
+  "lastPlanner": "deepseek:deepseek-chat+rag_top_k=5",
   "weeklyAvailability": {
     "mon": [
       {

@@ -26,15 +26,27 @@ class AvailabilitySkillResult:
 
 
 class AvailabilitySkillHandler:
-    """Natural-language weekly availability parser (Ollama primary, rule fallback on parse failure)."""
+    """Natural-language weekly availability parser (DeepSeek/LLM primary, rule fallback on parse failure)."""
 
     def __init__(
         self,
-        ollama_chat: Callable[[dict[str, Any]], dict[str, Any]],
-        ollama_model: str,
+        llm_chat: Callable[[dict[str, Any]], dict[str, Any]],
+        llm_model: str,
+        is_deepseek: bool = False,
     ) -> None:
-        self._ollama_chat = ollama_chat
-        self._ollama_model = ollama_model
+        self._llm_chat = llm_chat
+        self._llm_model = llm_model
+        self._is_deepseek = is_deepseek
+
+    def _extract_content(self, llm_response: dict[str, Any]) -> str:
+        """Extract content from LLM response, supporting both DeepSeek and Ollama formats."""
+        if self._is_deepseek:
+            try:
+                return llm_response["choices"][0]["message"]["content"]
+            except (KeyError, IndexError, TypeError) as exc:
+                raise RuntimeError(f"Unexpected LLM API response structure: {exc}") from exc
+        else:
+            return llm_response.get("message", {}).get("content", "{}")
 
     def build_chat_messages(
         self,
@@ -70,20 +82,25 @@ class AvailabilitySkillHandler:
         text = str(message or "").strip()
         history = history or []
 
-        ollama_messages = self.build_chat_messages(history, current_availability, text)
-        llm_res = self._ollama_chat(
-            {
-                "model": self._ollama_model,
-                "messages": ollama_messages,
-                "stream": False,
-                "format": "json",
-                "options": {
-                    "temperature": 0,
-                    "top_p": 0.1,
-                },
+        llm_messages = self.build_chat_messages(history, current_availability, text)
+
+        # Build payload compatible with both Ollama and DeepSeek
+        payload: dict[str, Any] = {
+            "model": self._llm_model,
+            "messages": llm_messages,
+            "stream": False,
+            "format": "json",
+        }
+
+        # DeepSeek supports temperature/top_p via OpenAI-compatible params
+        if self._is_deepseek:
+            payload["options"] = {
+                "temperature": 0,
+                "top_p": 0.1,
             }
-        )
-        content = llm_res.get("message", {}).get("content", "{}")
+
+        llm_res = self._llm_chat(payload)
+        content = self._extract_content(llm_res)
         reply, normalized, has_time_info, merge_mode, polarity_trace = parse_availability_llm_response(
             content,
             current_availability,
@@ -103,10 +120,11 @@ def handle_availability_chat(
     message: str,
     current_availability: dict[str, list[dict[str, str]]],
     history: list[dict[str, str]] | None,
-    ollama_chat: Callable[[dict[str, Any]], dict[str, Any]],
-    ollama_model: str,
+    llm_chat: Callable[[dict[str, Any]], dict[str, Any]],
+    llm_model: str,
+    is_deepseek: bool = False,
 ) -> AvailabilitySkillResult:
-    return AvailabilitySkillHandler(ollama_chat, ollama_model).handle(
+    return AvailabilitySkillHandler(llm_chat, llm_model, is_deepseek).handle(
         message,
         current_availability,
         history,
