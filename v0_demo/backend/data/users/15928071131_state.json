@@ -1,0 +1,438 @@
+{
+  "tasks": [
+    {
+      "id": "a5edba4e-5609-4ae2-a975-236839fac31a",
+      "status": "todo",
+      "title": "数学卷",
+      "deadline": "2026-06-29",
+      "subject": "math",
+      "taskType": "test_paper",
+      "difficulty": "medium",
+      "estimatedMinutes": null
+    }
+  ],
+  "todayPlan": {
+    "date": "2026-06-28",
+    "taskIds": [],
+    "totalEstimatedMinutes": 0,
+    "scheduledBlocks": [],
+    "weekday": "sun",
+    "note": "以下任务未能完全排入DDL前：数学卷",
+    "details": {
+      "rationale": "Task must be split due to continuous-time cap (45 min) and daily load cap (90 min). With only two available slots (Mon 07:00–08:00 and Tue 07:00–08:00), each 60 min, and mandatory 10-min gaps between segments, feasible segmentation is: Day 1 (Mon): 45 min (07:00–07:45); gap until 07:55; then 15 min (07:55–08:10) — but slot ends at 08:00 → violates slot boundary. Therefore, only one 45-min segment fits per day without overflow. To complete 120 min, need ≥3 segments → requires ≥3 days, but deadline is 2026-06-29 and window ends then → impossible under current constraints. Risk is unavoidable conflict between time-bound constraints and task duration.",
+      "risks": [
+        "Available slots total only 60 minutes across planning window (Mon–Fri 07:00–08:00 = 5 × 60 min = 300 min, but window is only 2026-06-28 to 2026-06-29 → only Mon Jun 28 and Tue Jun 29 are in window; both have one 60-min slot → 120 total minutes available), yet task requires 120 minutes and must be completed by deadline 2026-06-29 — tight fit. However, rule_test_paper_continuous mandates ≤45 min continuous, and rule_multi_set_rest mandates ≥10 min gap between segments; thus 120-min task must be split into ≥3 segments (e.g., 45+45+30), requiring ≥2 gaps → minimum schedule footprint = 45+10+45+10+30 = 140 minutes. But only 120 minutes available across two days → insufficient slot capacity to satisfy all constraints.",
+        "Cognitive load constraint 'rule_cognitive_load_daily_cap' limits high-load tasks to ≤90 min/day; splitting 120 min across two days (e.g., 60+60) violates this if both segments are classified as 'high' load — and test_paper tasks are explicitly tagged high cognitive load per planning_constraints.",
+        "空闲时段不足，部分任务无法在DDL前完成。",
+        "总需求 120 分钟，高于可用时段 60 分钟。",
+        "已安排 60 / 120 分钟，建议压缩任务或增加空闲时段。"
+      ],
+      "taskEstimates": [
+        {
+          "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+          "title": "数学卷",
+          "estimatedMinutes": 120,
+          "reason": "Baseline parametric estimate is 120 minutes (p50), supported by high-confidence calibration case case_math_test_paper_exam_sprint_medium_003 (118 min) and template tpl_math_test_paper_standard (120 min). Adjustment beyond ±15% is not justified despite warning about case_math_test_paper_middle_high_medium_052 (88 min), as that case reflects lower-grade band and lower cognitive load; user profile p_type_high_school_student aligns with senior_high grade_band in evidence_package, so 120 remains appropriate.",
+          "evidence_ids": [
+            "rate_math_test_paper_set",
+            "case_math_test_paper_exam_sprint_medium_003",
+            "tpl_math_test_paper_standard"
+          ]
+        }
+      ],
+      "ragTopK": 5,
+      "ragExamples": [
+        {
+          "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+          "title": "数学卷",
+          "examples": [
+            {
+              "sample_id": "rate_math_test_paper_set",
+              "source": "unit_rate",
+              "task_title": "单位速率 set×1",
+              "actual_minutes": 120,
+              "estimated_minutes": 120,
+              "estimated_minutes_min": 99,
+              "estimated_minutes_max": 146,
+              "subject": "math",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "score": 0.85
+            },
+            {
+              "sample_id": "case_math_test_paper_exam_sprint_medium_003",
+              "source": "calibration_case",
+              "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
+              "actual_minutes": 118,
+              "estimated_minutes": 118,
+              "subject": "math",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "score": 0.85
+            },
+            {
+              "sample_id": "case_math_test_paper_senior_high_hard_002",
+              "source": "calibration_case",
+              "task_title": "高中学生完成一套完整数学试卷，包括选择题、填空题和解答题，难度中等偏上。",
+              "actual_minutes": 130,
+              "estimated_minutes": 130,
+              "subject": "math",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "score": 0.8
+            },
+            {
+              "sample_id": "case_math_test_paper_middle_high_medium_052",
+              "source": "calibration_case",
+              "task_title": "初中高年级学生完成一套完整数学试卷。",
+              "actual_minutes": 88,
+              "estimated_minutes": 88,
+              "subject": "math",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "score": 0.75
+            },
+            {
+              "sample_id": "tpl_math_test_paper_standard",
+              "source": "task_template",
+              "task_title": "数学卷",
+              "actual_minutes": 120,
+              "estimated_minutes": 120,
+              "estimated_minutes_min": 99,
+              "estimated_minutes_max": 146,
+              "subject": "math",
+              "task_type": "test_paper",
+              "difficulty": "medium",
+              "planning_advice": "setup(8.0) + 1×rate×fatigue(1.1) ×diff(1.0)×grade(1.0)×subj(1.05)×P(1.18)",
+              "score": 0.6667
+            }
+          ]
+        }
+      ],
+      "planningWindow": {
+        "start": "2026-06-28",
+        "end": "2026-06-29"
+      },
+      "timeShortage": {
+        "hasShortage": true,
+        "totalNeededMinutes": 120,
+        "totalAvailableMinutes": 60,
+        "totalScheduledMinutes": 60,
+        "shortageMinutes": 60,
+        "affectedTasks": [
+          {
+            "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+            "title": "数学卷",
+            "deadline": "2026-06-29",
+            "estimatedMinutes": 120,
+            "scheduledMinutes": 60,
+            "shortageMinutes": 60
+          }
+        ]
+      }
+    }
+  },
+  "plansByDate": {
+    "2026-06-28": {
+      "date": "2026-06-28",
+      "taskIds": [],
+      "totalEstimatedMinutes": 0,
+      "scheduledBlocks": [],
+      "weekday": "sun",
+      "note": "以下任务未能完全排入DDL前：数学卷",
+      "details": {
+        "rationale": "Task must be split due to continuous-time cap (45 min) and daily load cap (90 min). With only two available slots (Mon 07:00–08:00 and Tue 07:00–08:00), each 60 min, and mandatory 10-min gaps between segments, feasible segmentation is: Day 1 (Mon): 45 min (07:00–07:45); gap until 07:55; then 15 min (07:55–08:10) — but slot ends at 08:00 → violates slot boundary. Therefore, only one 45-min segment fits per day without overflow. To complete 120 min, need ≥3 segments → requires ≥3 days, but deadline is 2026-06-29 and window ends then → impossible under current constraints. Risk is unavoidable conflict between time-bound constraints and task duration.",
+        "risks": [
+          "Available slots total only 60 minutes across planning window (Mon–Fri 07:00–08:00 = 5 × 60 min = 300 min, but window is only 2026-06-28 to 2026-06-29 → only Mon Jun 28 and Tue Jun 29 are in window; both have one 60-min slot → 120 total minutes available), yet task requires 120 minutes and must be completed by deadline 2026-06-29 — tight fit. However, rule_test_paper_continuous mandates ≤45 min continuous, and rule_multi_set_rest mandates ≥10 min gap between segments; thus 120-min task must be split into ≥3 segments (e.g., 45+45+30), requiring ≥2 gaps → minimum schedule footprint = 45+10+45+10+30 = 140 minutes. But only 120 minutes available across two days → insufficient slot capacity to satisfy all constraints.",
+          "Cognitive load constraint 'rule_cognitive_load_daily_cap' limits high-load tasks to ≤90 min/day; splitting 120 min across two days (e.g., 60+60) violates this if both segments are classified as 'high' load — and test_paper tasks are explicitly tagged high cognitive load per planning_constraints.",
+          "空闲时段不足，部分任务无法在DDL前完成。",
+          "总需求 120 分钟，高于可用时段 60 分钟。",
+          "已安排 60 / 120 分钟，建议压缩任务或增加空闲时段。"
+        ],
+        "taskEstimates": [
+          {
+            "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+            "title": "数学卷",
+            "estimatedMinutes": 120,
+            "reason": "Baseline parametric estimate is 120 minutes (p50), supported by high-confidence calibration case case_math_test_paper_exam_sprint_medium_003 (118 min) and template tpl_math_test_paper_standard (120 min). Adjustment beyond ±15% is not justified despite warning about case_math_test_paper_middle_high_medium_052 (88 min), as that case reflects lower-grade band and lower cognitive load; user profile p_type_high_school_student aligns with senior_high grade_band in evidence_package, so 120 remains appropriate.",
+            "evidence_ids": [
+              "rate_math_test_paper_set",
+              "case_math_test_paper_exam_sprint_medium_003",
+              "tpl_math_test_paper_standard"
+            ]
+          }
+        ],
+        "ragTopK": 5,
+        "ragExamples": [
+          {
+            "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+            "title": "数学卷",
+            "examples": [
+              {
+                "sample_id": "rate_math_test_paper_set",
+                "source": "unit_rate",
+                "task_title": "单位速率 set×1",
+                "actual_minutes": 120,
+                "estimated_minutes": 120,
+                "estimated_minutes_min": 99,
+                "estimated_minutes_max": 146,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "score": 0.85
+              },
+              {
+                "sample_id": "case_math_test_paper_exam_sprint_medium_003",
+                "source": "calibration_case",
+                "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
+                "actual_minutes": 118,
+                "estimated_minutes": 118,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "score": 0.85
+              },
+              {
+                "sample_id": "case_math_test_paper_senior_high_hard_002",
+                "source": "calibration_case",
+                "task_title": "高中学生完成一套完整数学试卷，包括选择题、填空题和解答题，难度中等偏上。",
+                "actual_minutes": 130,
+                "estimated_minutes": 130,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "score": 0.8
+              },
+              {
+                "sample_id": "case_math_test_paper_middle_high_medium_052",
+                "source": "calibration_case",
+                "task_title": "初中高年级学生完成一套完整数学试卷。",
+                "actual_minutes": 88,
+                "estimated_minutes": 88,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "score": 0.75
+              },
+              {
+                "sample_id": "tpl_math_test_paper_standard",
+                "source": "task_template",
+                "task_title": "数学卷",
+                "actual_minutes": 120,
+                "estimated_minutes": 120,
+                "estimated_minutes_min": 99,
+                "estimated_minutes_max": 146,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "setup(8.0) + 1×rate×fatigue(1.1) ×diff(1.0)×grade(1.0)×subj(1.05)×P(1.18)",
+                "score": 0.6667
+              }
+            ]
+          }
+        ],
+        "planningWindow": {
+          "start": "2026-06-28",
+          "end": "2026-06-29"
+        },
+        "timeShortage": {
+          "hasShortage": true,
+          "totalNeededMinutes": 120,
+          "totalAvailableMinutes": 60,
+          "totalScheduledMinutes": 60,
+          "shortageMinutes": 60,
+          "affectedTasks": [
+            {
+              "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+              "title": "数学卷",
+              "deadline": "2026-06-29",
+              "estimatedMinutes": 120,
+              "scheduledMinutes": 60,
+              "shortageMinutes": 60
+            }
+          ]
+        }
+      }
+    },
+    "2026-06-29": {
+      "date": "2026-06-29",
+      "taskIds": [
+        "a5edba4e-5609-4ae2-a975-236839fac31a"
+      ],
+      "totalEstimatedMinutes": 60,
+      "scheduledBlocks": [
+        {
+          "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+          "startMinute": 420,
+          "endMinute": 480,
+          "title": "数学卷",
+          "deadline": "2026-06-29"
+        }
+      ],
+      "weekday": "mon",
+      "note": "",
+      "details": {
+        "rationale": "Task must be split due to continuous-time cap (45 min) and daily load cap (90 min). With only two available slots (Mon 07:00–08:00 and Tue 07:00–08:00), each 60 min, and mandatory 10-min gaps between segments, feasible segmentation is: Day 1 (Mon): 45 min (07:00–07:45); gap until 07:55; then 15 min (07:55–08:10) — but slot ends at 08:00 → violates slot boundary. Therefore, only one 45-min segment fits per day without overflow. To complete 120 min, need ≥3 segments → requires ≥3 days, but deadline is 2026-06-29 and window ends then → impossible under current constraints. Risk is unavoidable conflict between time-bound constraints and task duration.",
+        "risks": [
+          "Available slots total only 60 minutes across planning window (Mon–Fri 07:00–08:00 = 5 × 60 min = 300 min, but window is only 2026-06-28 to 2026-06-29 → only Mon Jun 28 and Tue Jun 29 are in window; both have one 60-min slot → 120 total minutes available), yet task requires 120 minutes and must be completed by deadline 2026-06-29 — tight fit. However, rule_test_paper_continuous mandates ≤45 min continuous, and rule_multi_set_rest mandates ≥10 min gap between segments; thus 120-min task must be split into ≥3 segments (e.g., 45+45+30), requiring ≥2 gaps → minimum schedule footprint = 45+10+45+10+30 = 140 minutes. But only 120 minutes available across two days → insufficient slot capacity to satisfy all constraints.",
+          "Cognitive load constraint 'rule_cognitive_load_daily_cap' limits high-load tasks to ≤90 min/day; splitting 120 min across two days (e.g., 60+60) violates this if both segments are classified as 'high' load — and test_paper tasks are explicitly tagged high cognitive load per planning_constraints.",
+          "空闲时段不足，部分任务无法在DDL前完成。",
+          "总需求 120 分钟，高于可用时段 60 分钟。",
+          "已安排 60 / 120 分钟，建议压缩任务或增加空闲时段。"
+        ],
+        "taskEstimates": [
+          {
+            "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+            "title": "数学卷",
+            "estimatedMinutes": 120,
+            "reason": "Baseline parametric estimate is 120 minutes (p50), supported by high-confidence calibration case case_math_test_paper_exam_sprint_medium_003 (118 min) and template tpl_math_test_paper_standard (120 min). Adjustment beyond ±15% is not justified despite warning about case_math_test_paper_middle_high_medium_052 (88 min), as that case reflects lower-grade band and lower cognitive load; user profile p_type_high_school_student aligns with senior_high grade_band in evidence_package, so 120 remains appropriate.",
+            "evidence_ids": [
+              "rate_math_test_paper_set",
+              "case_math_test_paper_exam_sprint_medium_003",
+              "tpl_math_test_paper_standard"
+            ]
+          }
+        ],
+        "ragTopK": 5,
+        "ragExamples": [
+          {
+            "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+            "title": "数学卷",
+            "examples": [
+              {
+                "sample_id": "rate_math_test_paper_set",
+                "source": "unit_rate",
+                "task_title": "单位速率 set×1",
+                "actual_minutes": 120,
+                "estimated_minutes": 120,
+                "estimated_minutes_min": 99,
+                "estimated_minutes_max": 146,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "score": 0.85
+              },
+              {
+                "sample_id": "case_math_test_paper_exam_sprint_medium_003",
+                "source": "calibration_case",
+                "task_title": "冲刺阶段学生完成一套高考难度数学模拟卷，包括选择题、填空题和解答题。",
+                "actual_minutes": 118,
+                "estimated_minutes": 118,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "score": 0.85
+              },
+              {
+                "sample_id": "case_math_test_paper_senior_high_hard_002",
+                "source": "calibration_case",
+                "task_title": "高中学生完成一套完整数学试卷，包括选择题、填空题和解答题，难度中等偏上。",
+                "actual_minutes": 130,
+                "estimated_minutes": 130,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "score": 0.8
+              },
+              {
+                "sample_id": "case_math_test_paper_middle_high_medium_052",
+                "source": "calibration_case",
+                "task_title": "初中高年级学生完成一套完整数学试卷。",
+                "actual_minutes": 88,
+                "estimated_minutes": 88,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "score": 0.75
+              },
+              {
+                "sample_id": "tpl_math_test_paper_standard",
+                "source": "task_template",
+                "task_title": "数学卷",
+                "actual_minutes": 120,
+                "estimated_minutes": 120,
+                "estimated_minutes_min": 99,
+                "estimated_minutes_max": 146,
+                "subject": "math",
+                "task_type": "test_paper",
+                "difficulty": "medium",
+                "planning_advice": "setup(8.0) + 1×rate×fatigue(1.1) ×diff(1.0)×grade(1.0)×subj(1.05)×P(1.18)",
+                "score": 0.6667
+              }
+            ]
+          }
+        ],
+        "planningWindow": {
+          "start": "2026-06-28",
+          "end": "2026-06-29"
+        },
+        "timeShortage": {
+          "hasShortage": true,
+          "totalNeededMinutes": 120,
+          "totalAvailableMinutes": 60,
+          "totalScheduledMinutes": 60,
+          "shortageMinutes": 60,
+          "affectedTasks": [
+            {
+              "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+              "title": "数学卷",
+              "deadline": "2026-06-29",
+              "estimatedMinutes": 120,
+              "scheduledMinutes": 60,
+              "shortageMinutes": 60
+            }
+          ]
+        }
+      }
+    }
+  },
+  "checkins": [
+    {
+      "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+      "done": false,
+      "actualMinutes": null,
+      "checkedAt": "2026-06-28T16:33:12"
+    },
+    {
+      "taskId": "a5edba4e-5609-4ae2-a975-236839fac31a",
+      "done": true,
+      "actualMinutes": null,
+      "checkedAt": "2026-06-28T16:33:11"
+    }
+  ],
+  "lastPlanner": "deepseek:qwen-plus+rag_top_k=5",
+  "weeklyAvailability": {
+    "mon": [
+      {
+        "start": "07:00",
+        "end": "08:00"
+      }
+    ],
+    "tue": [
+      {
+        "start": "07:00",
+        "end": "08:00"
+      }
+    ],
+    "wed": [
+      {
+        "start": "07:00",
+        "end": "08:00"
+      }
+    ],
+    "thu": [
+      {
+        "start": "07:00",
+        "end": "08:00"
+      }
+    ],
+    "fri": [
+      {
+        "start": "07:00",
+        "end": "08:00"
+      }
+    ],
+    "sat": [],
+    "sun": []
+  }
+}

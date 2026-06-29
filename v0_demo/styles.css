@@ -1,21 +1,32 @@
 :root {
-  --bg-sky: #8fd3ff;
-  --bg-grass: #7ed957;
-  --panel: #fff6cf;
-  --panel-alt: #ffe38a;
-  --text: #1d1b21;
-  --muted: #5e5a66;
-  --line: #1d1b21;
-  --primary: #ff6b35;
-  --primary-dark: #d94f20;
-  --accent: #2fbf71;
-  --danger: #cc2e2e;
-  --blue: #3c8cff;
-  --radius-pixel: 8px;
-  --glass-panel: rgba(255, 246, 207, 0.68);
-  --glass-panel-strong: rgba(255, 246, 207, 0.82);
-  --glass-white: rgba(255, 255, 255, 0.72);
-  --pixel-shadow: 4px 4px 0 #00000066;
+  --bg-sky: #e6f0f5;
+  --bg-grass: #eef3ea;
+  --panel: #fffaf2;
+  --panel-alt: #fff3e0;
+  --text: #36414f;
+  --ink: #36414f;
+  --muted: #7c8694;
+  --line: rgba(54, 65, 79, 0.14);
+  --line-strong: rgba(54, 65, 79, 0.22);
+  --primary: #ef8b50;
+  --primary-dark: #e0763a;
+  --primary-soft: #fff1e6;
+  --accent: #5cbd92;
+  --danger: #e06a6a;
+  --blue: #6f9fe0;
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 26px;
+  --radius-pill: 999px;
+  --radius-pixel: var(--radius);
+  --glass-panel: rgba(255, 251, 244, 0.74);
+  --glass-panel-strong: rgba(255, 251, 244, 0.88);
+  --glass-white: rgba(255, 255, 255, 0.66);
+  --shadow-sm: 0 4px 14px rgba(40, 52, 70, 0.1);
+  --shadow: 0 12px 32px rgba(30, 40, 60, 0.14);
+  --shadow-lg: 0 22px 54px rgba(30, 40, 60, 0.2);
+  --pixel-shadow: var(--shadow);
+  --sans: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 * {
@@ -31,19 +42,19 @@ body {
   margin: 0;
   min-height: 100dvh;
   color: var(--text);
-  font-family: "Courier New", "Lucida Console", "Microsoft YaHei", monospace;
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
   background:
-    linear-gradient(rgba(20, 28, 42, 0.1), rgba(20, 28, 42, 0.18)),
-    radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.26) 0 1px, transparent 1px 100%),
-    linear-gradient(180deg, rgba(143, 211, 255, 0.72), rgba(126, 217, 87, 0.48)),
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.5) 0 1.4px, transparent 1.6px 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.74)),
     url("./assets/bg-pixel-field.png") center / cover fixed no-repeat,
     linear-gradient(180deg, var(--bg-sky), var(--bg-grass));
-  background-size: auto, 6px 6px, auto, cover, auto;
-  image-rendering: pixelated;
+  background-size: 22px 22px, auto, cover, auto;
 }
 
 .app-shell {
   width: 100%;
+  max-width: 1080px;
   min-height: 100dvh;
   margin: 0 auto;
   padding: 12px 12px 96px;
@@ -74,9 +85,9 @@ body {
 .page-header h1 {
   margin: 4px 0 2px;
   font-size: 1.45rem;
-  letter-spacing: 1px;
-  color: #ffffff;
-  text-shadow: 2px 2px 0 #1d1b21;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .page-header {
@@ -90,67 +101,26 @@ body {
   gap: 10px;
 }
 
-.account-icon-btn {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border: 3px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 253, 232, 0.86);
-  color: var(--text);
-  font: inherit;
-  font-size: 1.2rem;
-  font-weight: 900;
-  cursor: pointer;
-  box-shadow: 3px 3px 0 #00000055;
-}
-
 .icon-action-btn {
   width: 46px;
   height: 46px;
   display: grid;
   place-items: center;
-  border: 3px solid var(--line);
-  border-radius: var(--radius-pixel);
-  background: rgba(255, 253, 232, 0.9);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: rgba(255, 253, 246, 0.92);
   cursor: pointer;
-  box-shadow: 3px 3px 0 #00000055;
+  box-shadow: var(--shadow-sm);
 }
 
 .edit-svg {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   fill: none;
-  stroke: var(--line);
-  stroke-width: 3.4;
+  stroke: var(--ink);
+  stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.account-glyph {
-  position: relative;
-  width: 18px;
-  height: 18px;
-  display: block;
-  border: 3px solid var(--line);
-  border-radius: 999px 999px 6px 6px;
-}
-
-.account-glyph::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: -11px;
-  width: 12px;
-  height: 12px;
-  border: 3px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 253, 232, 0.96);
-  transform: translateX(-50%);
 }
 
 .home-title-image {
@@ -159,20 +129,20 @@ body {
   height: auto;
   margin: 2px auto 2px;
   image-rendering: pixelated;
-  filter: drop-shadow(2px 2px 0 #1d1b21);
+  filter: drop-shadow(0 6px 14px rgba(40, 52, 70, 0.22));
 }
 
 .card {
   background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.24) 0 1px, transparent 1px 100%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.4) 0 1px, transparent 1.4px 100%),
     var(--glass-panel);
-  background-size: 6px 6px, auto;
-  backdrop-filter: blur(10px) saturate(1.2);
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
-  border: 3px solid var(--line);
-  border-radius: var(--radius-pixel);
-  padding: 12px;
-  box-shadow: var(--pixel-shadow);
+  background-size: 18px 18px, auto;
+  backdrop-filter: blur(14px) saturate(1.12);
+  -webkit-backdrop-filter: blur(14px) saturate(1.12);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
 }
 
 h2 {
@@ -192,9 +162,10 @@ h2 {
   text-align: center;
   letter-spacing: 1px;
   margin: 8px 0 12px;
-  padding: 8px;
-  border: 3px solid var(--line);
-  background: #fefefe;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.86);
 }
 
 .timer-actions {
@@ -218,13 +189,13 @@ h2 {
 .icon-item span {
   width: 48px;
   height: 48px;
-  border: 3px solid var(--line);
-  border-radius: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   display: grid;
   place-items: center;
   font-size: 1.3rem;
   background: var(--panel-alt);
-  box-shadow: 2px 2px 0 #00000055;
+  box-shadow: var(--shadow-sm);
 }
 
 .icon-item p {
@@ -235,7 +206,7 @@ h2 {
 .auth-box {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 3px dashed var(--line);
+  border-top: 1px dashed var(--line-strong);
 }
 
 .auth-box h3 {
@@ -276,11 +247,11 @@ h2 {
 .account-avatar {
   width: 64px;
   height: 64px;
-  border: 3px solid var(--line);
-  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
   object-fit: cover;
-  background: rgba(255, 253, 232, 0.9);
-  box-shadow: 3px 3px 0 #00000055;
+  background: rgba(255, 253, 246, 0.9);
+  box-shadow: var(--shadow-sm);
 }
 
 .settings-view[hidden] {
@@ -303,32 +274,29 @@ h2 {
   gap: 10px;
   align-items: center;
   text-align: left;
-  border: 3px solid var(--line);
-  border-radius: var(--radius-pixel);
-  background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0 1px, transparent 1px 100%),
-    rgba(255, 255, 255, 0.76);
-  background-size: 6px 6px, auto;
-  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 14px;
   font: inherit;
   color: var(--text);
   cursor: pointer;
-  box-shadow: 3px 3px 0 #0000004d;
+  box-shadow: var(--shadow-sm);
   transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    filter 0.12s ease;
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
 }
 
 .settings-entry:hover {
-  filter: brightness(1.03);
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 #0000004d;
+  filter: brightness(1.02);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
 }
 
 .settings-entry:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 #0000004d;
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .settings-entry strong,
@@ -358,49 +326,45 @@ h2 {
 }
 
 .btn {
-  border: 3px solid var(--line);
-  border-radius: var(--radius-pixel);
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0)),
-    rgba(255, 255, 255, 0.9);
-  color: var(--text);
-  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  padding: 10px 16px;
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 2px 2px 0 #00000055;
+  box-shadow: var(--shadow-sm);
   transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    filter 0.12s ease,
-    background-color 0.12s ease;
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease,
+    background-color 0.15s ease;
   touch-action: manipulation;
 }
 
 .btn:hover {
-  filter: brightness(1.04) saturate(1.08);
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 #00000055;
+  filter: brightness(1.02);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
 }
 
 .btn:focus-visible,
 .nav-item:focus-visible,
 .week-day:focus-visible,
 .task-check:focus-visible {
-  outline: 3px solid #fff6cf;
+  outline: 3px solid rgba(239, 139, 80, 0.55);
   outline-offset: 2px;
 }
 
 .btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 #00000055;
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn.primary {
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
-    var(--primary);
-  border-color: var(--line);
+  background: var(--primary);
+  border-color: transparent;
   color: #fffdf8;
 }
 
@@ -418,7 +382,7 @@ h2 {
 .spinner {
   width: 18px;
   height: 18px;
-  border-radius: 0;
+  border-radius: 999px;
   border: 3px solid #ffd2c2;
   border-top-color: #ffffff;
   opacity: 0;
@@ -452,15 +416,12 @@ h2 {
 }
 
 .day-row {
-  border: 3px solid var(--line);
-  border-radius: var(--radius-pixel);
-  background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px 100%),
-    var(--glass-white);
-  background-size: 6px 6px, auto;
-  backdrop-filter: blur(7px) saturate(1.16);
-  -webkit-backdrop-filter: blur(7px) saturate(1.16);
-  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--glass-white);
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  padding: 10px;
 }
 
 .day-row-head {
@@ -514,23 +475,25 @@ label {
 input,
 select,
 textarea {
-  border: 3px solid var(--line);
-  border-radius: 7px;
-  padding: 10px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
   font: inherit;
-  background: rgba(255, 255, 255, 0.88);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.9);
   transition:
-    background-color 0.12s ease,
-    box-shadow 0.12s ease,
-    transform 0.12s ease;
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 2px 2px 0 #00000040, 0 0 0 3px rgba(255, 227, 138, 0.7);
+  background: #ffffff;
+  border-color: rgba(239, 139, 80, 0.55);
+  box-shadow: 0 0 0 3px rgba(239, 139, 80, 0.18);
 }
 
 textarea {
@@ -546,10 +509,10 @@ textarea {
 }
 
 .list li {
-  border: 3px solid var(--line);
-  border-radius: var(--radius-pixel);
-  background: rgba(255, 255, 255, 0.82);
-  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.84);
+  padding: 12px;
 }
 
 .task-item {
@@ -563,42 +526,41 @@ textarea {
   height: 38px;
   display: grid;
   place-items: center;
-  border: 3px solid var(--line);
-  border-radius: var(--radius-pixel);
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ink);
   font: inherit;
   font-size: 1.4rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 2px 2px 0 #00000035;
+  box-shadow: var(--shadow-sm);
 }
 
 .task-check {
-  width: 20px;
-  height: 20px;
-  border: 3px solid var(--line);
-  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
   cursor: pointer;
   background: #fff;
   transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background-color 0.12s ease;
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .task-check:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 2px 2px 0 #00000045;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .task-check:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 #00000035;
+  transform: translateY(0);
 }
 
 .task-check.checked {
@@ -665,11 +627,11 @@ textarea {
 
 .selected-date-label {
   text-align: center;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.72);
-  border: 3px solid var(--line);
-  border-radius: var(--radius-pixel);
-  padding: 6px 8px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
@@ -818,6 +780,144 @@ textarea {
   min-height: min(68dvh, 520px);
 }
 
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, rgba(24, 38, 56, 0.62), rgba(24, 38, 56, 0.74));
+  background-size: 6px 6px, auto;
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+}
+
+.auth-gate.hidden {
+  display: none;
+}
+
+.auth-gate-inner {
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.auth-gate-logo {
+  display: block;
+  width: min(70%, 240px);
+  height: auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 #1d1b21);
+}
+
+.auth-gate-card {
+  width: 100%;
+}
+
+.auth-gate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.auth-gate-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.auth-gate-form input {
+  width: 100%;
+}
+
+.auth-gate-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.auth-gate-actions .btn {
+  flex: 1 1 0;
+}
+
+.auth-gate-status {
+  margin: 10px 0 0;
+  min-height: 20px;
+  font-size: 0.86rem;
+  color: var(--danger);
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 0;
+  margin: 2px 0 8px;
+  padding: 0;
+}
+
+.chat-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--ink);
+}
+
+.page[data-page="chat"] {
+  height: calc(100dvh - 108px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page > .card.assistant-chat-view:last-of-type {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+}
+
+.assistant-chat-view .chat-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+/* Keep bubbles at their natural height so the list overflows and scrolls,
+   instead of being compressed to fit the fixed-height messages area. */
+.assistant-chat-view .chat-messages > * {
+  flex: 0 0 auto;
+}
+
+/* Anchor messages to the bottom (newest visible) without justify-content:flex-end,
+   which clips overflowed content and breaks scrolling in Chromium. */
+.assistant-chat-view .chat-messages > :first-child {
+  margin-top: auto;
+}
+
+.assistant-chat-view .chat-composer {
+  margin-top: 0;
+  min-width: 0;
+}
+
+.assistant-chat-view .chat-bubble.assistant {
+  background: rgba(255, 255, 255, 0.92);
+}
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -858,19 +958,25 @@ textarea {
 }
 
 .chat-composer {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
   gap: 8px;
-  align-items: end;
+  align-items: flex-end;
   padding-top: 10px;
   margin-top: auto;
   border-top: 2px solid rgba(29, 27, 33, 0.12);
 }
 
 .chat-composer textarea {
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 44px;
   max-height: 120px;
   resize: vertical;
+}
+
+.chat-composer .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .timeline-canvas {
@@ -1186,6 +1292,10 @@ textarea {
 
   .page {
     padding: 6px;
+  }
+
+  .page[data-page="chat"] {
+    height: calc(100dvh - 98px);
   }
 
   .day-row-head {

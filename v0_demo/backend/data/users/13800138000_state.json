@@ -1,0 +1,41 @@
+{
+  "tasks": [],
+  "todayPlan": null,
+  "plansByDate": {},
+  "checkins": [],
+  "lastPlanner": "none",
+  "weeklyAvailability": {
+    "mon": [
+      {
+        "start": "19:00",
+        "end": "21:00"
+      }
+    ],
+    "tue": [
+      {
+        "start": "19:00",
+        "end": "21:00"
+      }
+    ],
+    "wed": [
+      {
+        "start": "19:00",
+        "end": "21:00"
+      }
+    ],
+    "thu": [
+      {
+        "start": "19:00",
+        "end": "21:00"
+      }
+    ],
+    "fri": [
+      {
+        "start": "19:00",
+        "end": "21:00"
+      }
+    ],
+    "sat": [],
+    "sun": []
+  }
+}

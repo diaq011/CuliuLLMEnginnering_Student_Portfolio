@@ -7,32 +7,44 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <main class="app-shell">
-    <section class="page page-active" data-page="home">
-      <header class="page-header">
-        <img id="homeTitleImage" class="home-title-image" src="./assets/title-j-simulator.png" alt="J人模拟器">
-        <button id="homeAccountBtn" class="account-icon-btn" type="button" aria-label="账号">
-          <span class="account-glyph" aria-hidden="true"></span>
-        </button>
-      </header>
-      <div class="card">
-        <h2>专注</h2>
-        <div id="timerDisplay" class="timer-display">00:00:00</div>
-        <div class="timer-actions">
-          <button id="timerToggleBtn" class="btn primary" type="button">开始</button>
-          <button id="timerResetBtn" class="btn" type="button">重置</button>
-        </div>
+  <section id="authGate" class="auth-gate">
+    <div class="auth-gate-inner">
+      <img class="auth-gate-logo" src="./assets/title-j-simulator.png" alt="J人模拟器">
+      <div class="card auth-gate-card">
+        <h2 id="authGateTitle">登录 / 注册</h2>
+        <p class="hint">用手机号或邮箱登录，第一次使用会自动为你创建账号。</p>
+        <form id="authGateForm" class="auth-gate-form">
+          <label>
+            手机号 / 邮箱
+            <input id="gateIdentifier" type="text" inputmode="email" autocomplete="username"
+              placeholder="如 13800138000 或 you@example.com" required>
+          </label>
+          <label>
+            密码
+            <input id="gatePassword" type="password" autocomplete="current-password"
+              placeholder="至少 6 位" required>
+          </label>
+          <div class="auth-gate-actions">
+            <button id="gateLoginBtn" class="btn primary" type="submit">登录</button>
+            <button id="gateRegisterBtn" class="btn" type="button">注册新账号</button>
+          </div>
+        </form>
+        <p id="gateStatus" class="auth-gate-status" aria-live="polite"></p>
       </div>
-      <div class="card">
-        <h2>常用入口</h2>
-        <div class="icon-grid">
-          <div class="icon-item"><span>📅</span></div>
-          <div class="icon-item"><span>⏱️</span></div>
-          <div class="icon-item"><span>📝</span></div>
-          <div class="icon-item"><span>📊</span></div>
-          <div class="icon-item"><span>🎯</span></div>
-          <div class="icon-item"><span>🧩</span></div>
-        </div>
+    </div>
+  </section>
+
+  <main class="app-shell">
+    <section class="page page-active" data-page="chat">
+      <header class="page-header chat-header">
+        <h1 class="chat-title">J人模拟器</h1>
+      </header>
+      <div class="card assistant-chat-view">
+        <div id="assistantChatMessages" class="chat-messages" aria-live="polite"></div>
+        <form id="assistantChatForm" class="chat-composer">
+          <textarea id="assistantChatInput" rows="2" placeholder="说点什么…"></textarea>
+          <button id="assistantChatSendBtn" class="btn primary" type="submit">发送</button>
+        </form>
       </div>
     </section>
 
@@ -262,7 +274,7 @@
       </div>
     </section>
 
-    <div id="feedbackBox" class="feedback" aria-live="polite"></div>
+    <div id="feedbackBox" class="feedback hidden" aria-live="polite"></div>
   </main>
 
   <section id="focusOverlay" class="focus-overlay hidden" aria-label="专注界面">
@@ -456,7 +468,7 @@
   </div>
 
   <nav class="bottom-nav">
-    <button class="nav-item nav-active" data-nav="home" type="button"><span>🏠</span><em>主页</em></button>
+    <button class="nav-item nav-active" data-nav="chat" type="button"><span>💬</span><em>对话</em></button>
     <button class="nav-item" data-nav="timeline" type="button"><span>🕒</span><em>时间轴</em></button>
     <button class="nav-item" data-nav="plan" type="button"><span>📋</span><em>计划列表</em></button>
     <button class="nav-item" data-nav="settings" type="button"><span>⚙️</span><em>设置</em></button>

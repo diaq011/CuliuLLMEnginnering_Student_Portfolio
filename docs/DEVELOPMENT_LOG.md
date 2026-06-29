@@ -14,18 +14,47 @@
 | 项目名称      | J人模拟器 — 面向高年级学生的学习计划工具                                                                                 |
 | 主代码目录     | `v0_demo/`（前端 HTML/CSS/JS + Flask 后端）                                                                  |
 | 后端入口      | `v0_demo/backend/app.py`                                                                               |
-| 前端入口      | `v0_demo/index.html` + `app.js` + `styles.css`                                                         |
-| 默认 LLM    | Ollama `qwen3:0.6b`（环境变量 `OLLAMA_MODEL` 可改）                                                            |
+| 前端入口      | `v0_demo/index.html` + `app.js` + `styles.css`（默认进入「对话」页）                                              |
+| 默认 LLM    | DeepSeek `deepseek-chat`（OpenAI 兼容，`v0_demo/backend/deepseek_client.py`，环境变量 `DEEPSEEK_API_KEY` 等）    |
+| 对话 Agent  | `v0_demo/backend/assistant_agent.py`（function calling）+ `POST /api/chat`                              |
 | 知识库文件     | `v0_demo/backend/data/knowledge/task_knowledge_v2.jsonl`（v2 参数化；v1 遗留 `task_duration_knowledge.jsonl`） |
-| 本地启动      | `cd v0_demo/backend && APP_PORT=5001 python3 app.py`（macOS 5000 常被 AirPlay 占用）                         |
-| 当前 MVP 范围 | 任务录入、空闲时段、AI 生成计划、时间轴、专注模式、账号、RAG 估时                                                                   |
+| 本地启动      | `cp run.local.sh.example run.local.sh` 填入 key 后 `./run.local.sh`（默认 5001，macOS 5000 常被 AirPlay 占用）    |
+| 账号        | 可选：默认免登录（游客 `X-Guest-Id` 头，状态持久化到 `data/users/guest_<id>_state.json`），登录后用账号态                          |
+| 当前 MVP 范围 | AI 对话主页（录任务/设空闲/生成计划/查询）、时间轴、计划列表、专注模式、账号、RAG 估时                                                       |
 
 
-**尚未实现 / 后续阶段**：ChromaDB 向量检索、桌面小组件、手机使用监督、语音录入。
+**尚未实现 / 后续阶段**：流式输出、游客→账号状态迁移、ChromaDB 向量检索、桌面小组件、手机使用监督、语音录入。
 
 ---
 
 ## 最新更新
+
+### 2026-06-28 — 架构改造：AI 对话主页 + 全能 Agent + 账号可选
+
+**做了什么**
+
+- 前端主体改为 AI 对话窗口：新增 `data-page="chat"` 页与底部导航「对话」项，并设为默认进入页（[v0_demo/index.html](../v0_demo/index.html)、[v0_demo/app.js](../v0_demo/app.js)）。新用户首次进入由前端 seed 一条介绍消息（`ASSISTANT_INTRO`），历史存 `localStorage`。
+- 新增对话 Agent：`POST /api/chat` 跑多轮 function calling 循环，DeepSeek 通过工具真正修改应用状态。工具：`set_availability`/`add_task`/`generate_plan`/`list_tasks`/`get_plan`（[v0_demo/backend/assistant_agent.py](../v0_demo/backend/assistant_agent.py)）。返回 `reply` + `stateChanged`，前端据此刷新时间轴/计划/空闲时间。
+- 账号改为可选（降低门槛）：`get_current_username` 无 token 时回退 `X-Guest-Id` 游客态；`api()` 注入该头；前端门禁由 `hasIdentity()` 取代「必须登录」，退出后自动转游客。
+- DeepSeek 客户端支持 function calling：`deepseek_chat` 透传 `tools`/`tool_choice`，新增 `extract_tool_calls` / `extract_deepseek_message`。
+- 计划生成核心抽成可复用的 `run_plan_generation(username, date)`（`PlanGenerationError` 承载消息+状态码），供 HTTP 路由与 Agent 共用。
+- 安全：API key 不入库，改由 gitignored 的 `v0_demo/backend/run.local.sh` 注入（附 `.example` 模板），`.gitignore` 增加 `*.local.*`。
+
+**为什么**
+
+- 原四页+表单对新用户门槛过高；改为「一句话交给 AI」更易上手，符合"每天≤5分钟"的成功标准。
+
+**涉及文件**
+
+- `v0_demo/backend/assistant_agent.py`（新）、`v0_demo/backend/app.py`、`v0_demo/backend/deepseek_client.py`
+- `v0_demo/index.html`、`v0_demo/app.js`、`v0_demo/styles.css`
+- `v0_demo/backend/run.local.sh(.example)`、`.gitignore`
+
+**验证方式**
+
+- `assistant_agent.run_agent_turn` mock 单测通过；起服务实测对话一次完成「设空闲+加任务+生成计划」三次工具调用，状态持久化到游客 state，时间轴出现排程方块。
+
+---
 
 ### 2026-06-06 — 空闲时段解析 Skill（availability-parser）
 
@@ -170,6 +199,7 @@
 
 | 方法         | 路径                                     | 说明                 |
 | ---------- | -------------------------------------- | ------------------ |
+| POST       | `/api/chat`                            | AI 对话 Agent（function calling 驱动录任务/设空闲/出计划） |
 | POST       | `/api/auth/register` `/api/auth/login` | 账号                 |
 | GET/POST   | `/api/tasks`                           | 任务列表 / 创建          |
 | PUT/DELETE | `/api/tasks/<id>`                      | 编辑 / 删除任务          |
@@ -178,17 +208,19 @@
 | POST       | `/api/plans/today`                     | 生成今日计划             |
 | GET        | `/api/plans/<date>`                    | 按日期取计划             |
 | POST       | `/api/checkins`                        | 任务打卡               |
-| GET        | `/api/health`                          | 健康检查（含 Ollama 模型名） |
+| GET        | `/api/health`                          | 健康检查（含 DeepSeek 可用性与模型名） |
 
 
 ---
 
 ## 已知问题与备忘
 
-1. **端口 5000**：macOS AirPlay 可能占用，改用 `APP_PORT=5001`
-2. **模型能力**：`qwen3:0.6b` 较小，复杂自然语言解析可能不稳定；已加后端规则兜底
-3. **向量检索**：知识库当前为属性 + 文本相似度，尚未接 ChromaDB
-4. **Cloud vs Local**：在 Cursor Cloud 改的文件需同步到本地仓库后再运行
+1. **端口 5000**：macOS AirPlay（ControlCenter）常占用，`run.local.sh` 默认 `APP_PORT=5001`
+2. **API Key**：DeepSeek key 仅放在 gitignored 的 `run.local.sh`，切勿提交；若曾泄露请到 DeepSeek 控制台吊销重置
+3. **模型行为**：偶尔 Agent 已成功生成计划却在回复里表述为"失败"，属模型措辞问题，状态已正确落库
+4. **向量检索**：知识库当前为属性 + 文本相似度，尚未接 ChromaDB
+5. **游客态**：游客状态按 `X-Guest-Id` 持久化，暂不自动迁移到账号
+6. **Cloud vs Local**：在 Cursor Cloud 改的文件需同步到本地仓库后再运行
 
 ---
 
@@ -212,4 +244,4 @@
 
 ---
 
-*最后维护：2026-06-06*
+*最后维护：2026-06-28*

@@ -30,6 +30,7 @@ from knowledge_rag import (
     fallback_estimate_from_package,
     index_knowledge_by_type,
 )
+from assistant_agent import run_agent_turn
 
 V0_DEMO_ROOT = Path(__file__).resolve().parent.parent
 if str(V0_DEMO_ROOT) not in sys.path:
@@ -176,6 +177,25 @@ def default_user_state() -> dict[str, Any]:
         "lastPlanner": "none",
         "weeklyAvailability": {key: [] for key in WEEK_KEYS},
     }
+
+
+PHONE_RE = re.compile(r"^1[3-9]\d{9}$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def classify_identifier(identifier: str) -> str | None:
+    """Return 'phone' or 'email' for a valid identifier, else None."""
+    if PHONE_RE.match(identifier):
+        return "phone"
+    if EMAIL_RE.match(identifier):
+        return "email"
+    return None
+
+
+def normalize_identifier(raw: str) -> str:
+    identifier = str(raw or "").strip()
+    # Emails are case-insensitive; phones are digits. Lowercasing is safe for both.
+    return identifier.lower()
 
 
 def safe_username(username: str) -> str:
@@ -787,44 +807,46 @@ def health():
 @app.route("/api/auth/register", methods=["POST"])
 def auth_register():
     payload = request.get_json(silent=True) or {}
-    username = str(payload.get("username") or "").strip()
+    identifier = normalize_identifier(payload.get("identifier") or payload.get("username") or "")
     password = str(payload.get("password") or "")
-    if not re.match(r"^[a-zA-Z0-9_-]{3,32}$", username):
-        return jsonify({"message": "username must be 3-32 chars: letters/numbers/_/-"}), 400
+    id_type = classify_identifier(identifier)
+    if not id_type:
+        return jsonify({"message": "请输入有效的手机号或邮箱"}), 400
     if len(password) < 6:
-        return jsonify({"message": "password must be at least 6 chars"}), 400
+        return jsonify({"message": "密码至少需要 6 位"}), 400
 
     with store_lock:
-        if username in users_db:
-            return jsonify({"message": "username already exists"}), 409
+        if identifier in users_db:
+            return jsonify({"message": "该手机号/邮箱已注册，请直接登录"}), 409
         salt = secrets.token_hex(8)
-        users_db[username] = {
+        users_db[identifier] = {
             "salt": salt,
             "password_hash": hash_password(password, salt),
             "created_at": iso_now(),
+            "type": id_type,
         }
         save_users()
-        save_user_state(username, default_user_state())
+        save_user_state(identifier, default_user_state())
         token = secrets.token_urlsafe(32)
-        sessions[token] = username
-    return jsonify({"ok": True, "user": {"username": username}, "token": token})
+        sessions[token] = identifier
+    return jsonify({"ok": True, "user": {"username": identifier, "type": id_type}, "token": token, "isNew": True})
 
 
 @app.route("/api/auth/login", methods=["POST"])
 def auth_login():
     payload = request.get_json(silent=True) or {}
-    username = str(payload.get("username") or "").strip()
+    identifier = normalize_identifier(payload.get("identifier") or payload.get("username") or "")
     password = str(payload.get("password") or "")
     with store_lock:
-        user = users_db.get(username)
+        user = users_db.get(identifier)
         if not user:
-            return jsonify({"message": "invalid username or password"}), 401
+            return jsonify({"message": "手机号/邮箱或密码错误"}), 401
         expected = hash_password(password, user.get("salt", ""))
         if expected != user.get("password_hash"):
-            return jsonify({"message": "invalid username or password"}), 401
+            return jsonify({"message": "手机号/邮箱或密码错误"}), 401
         token = secrets.token_urlsafe(32)
-        sessions[token] = username
-    return jsonify({"ok": True, "user": {"username": username}, "token": token})
+        sessions[token] = identifier
+    return jsonify({"ok": True, "user": {"username": identifier, "type": user.get("type")}, "token": token})
 
 
 @app.route("/api/auth/logout", methods=["POST"])
@@ -948,6 +970,138 @@ def parse_availability_chat():
     return jsonify(result.to_api_dict())
 
 
+@app.route("/api/chat", methods=["POST"])
+def assistant_chat():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
+    payload = request.get_json(silent=True) or {}
+    message = str(payload.get("message") or "").strip()
+    if not message:
+        return jsonify({"message": "请输入内容"}), 400
+    history = payload.get("history", [])
+    if not isinstance(history, list):
+        history = []
+    clean_history: list[dict[str, str]] = []
+    for item in history[-12:]:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role", "")).strip()
+        content = str(item.get("content", "")).strip()
+        if role in {"user", "assistant"} and content:
+            clean_history.append({"role": role, "content": content})
+
+    ok, model_msg = deepseek_model_ready()
+    if not ok:
+        return jsonify({"message": f"DeepSeek API 不可用：{model_msg}"}), 503
+
+    def dispatch_tool(name: str, args: dict[str, Any]) -> tuple[Any, list[str]]:
+        if name == "set_availability":
+            description = str(args.get("description") or "").strip()
+            if not description:
+                return {"error": "缺少空闲时间描述"}, []
+            with store_lock:
+                state = load_user_state(username)
+                current = state["weeklyAvailability"]
+            handler = AvailabilitySkillHandler(deepseek_chat, AVAILABILITY_DEEPSEEK_MODEL, is_deepseek=True)
+            result = handler.handle(description, current, [])
+            if result.applied and result.weekly_availability is not None:
+                with store_lock:
+                    state = load_user_state(username)
+                    state["weeklyAvailability"] = result.weekly_availability
+                    save_user_state(username, state)
+                return (
+                    {"applied": True, "reply": result.reply, "weeklyAvailability": result.weekly_availability},
+                    ["availability"],
+                )
+            return {"applied": False, "reply": result.reply, "has_time_info": result.has_time_info}, []
+
+        if name == "add_task":
+            try:
+                cleaned = validate_task_payload(
+                    {
+                        "title": args.get("title"),
+                        "deadline": args.get("deadline"),
+                        "subject": args.get("subject") or "general",
+                        "taskType": args.get("taskType") or "exercise_set",
+                        "difficulty": args.get("difficulty") or "medium",
+                        "estimatedMinutes": args.get("estimatedMinutes"),
+                    }
+                )
+            except ValueError as exc:
+                return {"error": str(exc)}, []
+            task = {"id": str(uuid4()), "status": "todo", **cleaned}
+            with store_lock:
+                state = load_user_state(username)
+                state["tasks"].append(task)
+                save_user_state(username, state)
+            return (
+                {"ok": True, "task": {"id": task["id"], "title": task["title"], "deadline": task["deadline"]}},
+                ["tasks"],
+            )
+
+        if name == "generate_plan":
+            date = str(args.get("date") or today_str()).strip()
+            try:
+                gen = run_plan_generation(username, date)
+            except PlanGenerationError as exc:
+                return {"error": exc.message}, []
+            plan = gen.get("plan", {})
+            shortage = (plan.get("details", {}) or {}).get("timeShortage", {})
+            return (
+                {
+                    "ok": True,
+                    "date": plan.get("date"),
+                    "planningWindow": gen.get("planningWindow"),
+                    "totalEstimatedMinutes": plan.get("totalEstimatedMinutes"),
+                    "taskCount": len(plan.get("taskIds", [])),
+                    "hasShortage": bool(shortage.get("hasShortage")),
+                },
+                ["plan"],
+            )
+
+        if name == "list_tasks":
+            with store_lock:
+                state = load_user_state(username)
+            tasks = [
+                {
+                    "title": t.get("title"),
+                    "deadline": t.get("deadline"),
+                    "subject": SUBJECT_LABELS.get(t.get("subject", "general"), "综合/其他"),
+                    "status": t.get("status"),
+                }
+                for t in state["tasks"]
+            ]
+            return {"tasks": tasks, "count": len(tasks)}, []
+
+        if name == "get_plan":
+            date = str(args.get("date") or today_str()).strip()
+            with store_lock:
+                state = load_user_state(username)
+                plan = state["plansByDate"].get(date)
+            return {"date": date, "plan": plan}, []
+
+        return {"error": f"unknown tool: {name}"}, []
+
+    agent_context = {"today": today_str(), "weekday_key": current_week_key()}
+    try:
+        result = run_agent_turn(
+            deepseek_chat,
+            DEEPSEEK_MODEL,
+            clean_history,
+            message,
+            dispatch_tool,
+            context=agent_context,
+        )
+    except RuntimeError as exc:
+        msg = str(exc)
+        if "timed out" in msg.lower():
+            return jsonify({"message": f"模型响应超时（{DEEPSEEK_TIMEOUT_SEC} 秒内未返回）"}), 504
+        return jsonify({"message": f"模型调用失败：{msg}"}), 502
+
+    return jsonify(result)
+
+
 @app.route("/api/tasks", methods=["POST"])
 def create_task():
     username = get_current_username()
@@ -1006,17 +1160,26 @@ def delete_task(task_id: str):
     return jsonify({"ok": True})
 
 
-@app.route("/api/plans/generate", methods=["POST"])
-def generate_plan_for_date():
-    username = get_current_username()
-    if not username:
-        return jsonify({"message": "unauthorized"}), 401
-    req_payload = request.get_json(silent=True) or {}
-    target_date = str(req_payload.get("date") or today_str()).strip()
+class PlanGenerationError(Exception):
+    """Raised by run_plan_generation; carries an HTTP-friendly message and status."""
+
+    def __init__(self, message: str, status: int = 400) -> None:
+        super().__init__(message)
+        self.message = message
+        self.status = status
+
+
+def run_plan_generation(username: str, target_date: str) -> dict[str, Any]:
+    """Core plan-generation logic, reusable by the HTTP route and the chat agent.
+
+    Returns {"plan", "planner", "planningWindow"} on success.
+    Raises PlanGenerationError(message, status) on any recoverable failure.
+    """
+    target_date = str(target_date or today_str()).strip()
     try:
         planning_start_dt = parse_date(target_date)
     except ValueError:
-        return jsonify({"message": "date must be YYYY-MM-DD"}), 400
+        raise PlanGenerationError("date must be YYYY-MM-DD", 400)
 
     with store_lock:
         state = load_user_state(username)
@@ -1024,7 +1187,7 @@ def generate_plan_for_date():
         availability = state["weeklyAvailability"]
 
     if not tasks:
-        return jsonify({"message": "请先添加至少一个任务，再生成计划"}), 400
+        raise PlanGenerationError("请先添加至少一个任务，再生成计划", 400)
 
     max_deadline_dt = max(parse_date(task["deadline"]) for task in tasks)
     planning_end_dt = max(planning_start_dt, max_deadline_dt)
@@ -1034,11 +1197,11 @@ def generate_plan_for_date():
     segments_by_date = build_day_segments(availability, planning_start_dt, planning_end_dt)
     total_slot_minutes = sum(max(0, e - s) for segs in segments_by_date.values() for s, e in segs)
     if total_slot_minutes <= 0:
-        return jsonify({"message": "从今天到任务DDL前都没有可用空闲时段，请先在设置中配置"}), 400
+        raise PlanGenerationError("从今天到任务DDL前都没有可用空闲时段，请先在设置中配置", 400)
 
     ok, model_msg = deepseek_model_ready()
     if not ok:
-        return jsonify({"message": f"DeepSeek API 不可用：{model_msg}"}), 503
+        raise PlanGenerationError(f"DeepSeek API 不可用：{model_msg}", 503)
 
     rag_samples = load_rag_samples(username)
     knowledge_records = load_knowledge_records()
@@ -1085,10 +1248,12 @@ def generate_plan_for_date():
     except RuntimeError as exc:
         msg = str(exc)
         if "timed out" in msg.lower():
-            return jsonify({"message": f"模型响应超时（{DEEPSEEK_TIMEOUT_SEC} 秒内未返回）"}), 504
-        return jsonify({"message": f"模型调用失败：{msg}"}), 502
+            raise PlanGenerationError(f"模型响应超时（{DEEPSEEK_TIMEOUT_SEC} 秒内未返回）", 504)
+        raise PlanGenerationError(f"模型调用失败：{msg}", 502)
+    except PlanGenerationError:
+        raise
     except Exception as exc:
-        return jsonify({"message": f"模型解析失败：{exc}"}), 502
+        raise PlanGenerationError(f"模型解析失败：{exc}", 502)
 
     estimated_minutes_by_id: dict[str, int] = {}
     estimate_details = []
@@ -1223,25 +1388,37 @@ def generate_plan_for_date():
         "note": note,
         "details": details,
     }
-    return jsonify(
-        {
-            "plan": plan,
-            "planner": state["lastPlanner"],
-            "planningWindow": {"start": planning_start, "end": planning_end},
-        }
-    )
+    return {
+        "plan": plan,
+        "planner": state["lastPlanner"],
+        "planningWindow": {"start": planning_start, "end": planning_end},
+    }
+
+
+@app.route("/api/plans/generate", methods=["POST"])
+def generate_plan_for_date():
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
+    req_payload = request.get_json(silent=True) or {}
+    target_date = str(req_payload.get("date") or today_str()).strip()
+    try:
+        result = run_plan_generation(username, target_date)
+    except PlanGenerationError as exc:
+        return jsonify({"message": exc.message}), exc.status
+    return jsonify(result)
 
 
 @app.route("/api/plans/today", methods=["POST"])
 def build_today_plan():
-    payload = request.get_json(silent=True) or {}
-    payload["date"] = today_str()
-    auth_header = request.headers.get("Authorization")
-    headers = {}
-    if auth_header:
-        headers["Authorization"] = auth_header
-    with app.test_request_context(method="POST", json=payload, headers=headers):
-        return generate_plan_for_date()
+    username = get_current_username()
+    if not username:
+        return jsonify({"message": "unauthorized"}), 401
+    try:
+        result = run_plan_generation(username, today_str())
+    except PlanGenerationError as exc:
+        return jsonify({"message": exc.message}), exc.status
+    return jsonify(result)
 
 
 @app.route("/api/plans/<date_str>", methods=["GET"])

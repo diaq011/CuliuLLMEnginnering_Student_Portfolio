@@ -8,5 +8,17 @@
     "salt": "4bbc65fa2dc9ec6c",
     "password_hash": "2126683cae29116b71ccc9ebc5b7c7dad01d03389c5bbf9067f694488742e3f3",
     "created_at": "2026-05-15T22:11:04"
+  },
+  "15928071131": {
+    "salt": "e5114e3111357eb0",
+    "password_hash": "e882927bdf2809e59db34905f88065e78d68756933a4c7539981f391a86e6934",
+    "created_at": "2026-06-28T15:29:50",
+    "type": "phone"
+  },
+  "13800138000": {
+    "salt": "bd1e132907c97f2e",
+    "password_hash": "6efb6b66ad08b15a07e86227bf3a4c5625af9f2fc0be01faed56fcecd34f1291",
+    "created_at": "2026-06-29T14:01:59",
+    "type": "phone"
   }
 }

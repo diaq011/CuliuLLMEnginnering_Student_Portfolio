@@ -57,6 +57,14 @@ def deepseek_chat(payload: dict[str, Any]) -> dict[str, Any]:
     if payload.get("format") == "json":
         body_payload["response_format"] = {"type": "json_object"}
 
+    # Function calling (OpenAI-compatible). Note: DeepSeek rejects combining
+    # tools with json_object response_format, so callers should not set both.
+    if payload.get("tools"):
+        body_payload["tools"] = payload["tools"]
+        body_payload.pop("response_format", None)
+        if payload.get("tool_choice"):
+            body_payload["tool_choice"] = payload["tool_choice"]
+
     # Map Ollama options to OpenAI params
     options = payload.get("options", {})
     if "temperature" in options:
@@ -106,3 +114,24 @@ def extract_deepseek_content(response: dict[str, Any]) -> str:
         return response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError(f"Unexpected DeepSeek API response structure: {exc}") from exc
+
+
+def extract_deepseek_message(response: dict[str, Any]) -> dict[str, Any]:
+    """Extract the full assistant message object (content + optional tool_calls)."""
+    try:
+        message = response["choices"][0]["message"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(f"Unexpected DeepSeek API response structure: {exc}") from exc
+    return message if isinstance(message, dict) else {}
+
+
+def extract_tool_calls(response: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract tool_calls from a DeepSeek/OpenAI chat completion response.
+
+    Returns an empty list when the assistant did not request any tool call.
+    """
+    message = extract_deepseek_message(response)
+    tool_calls = message.get("tool_calls")
+    if not isinstance(tool_calls, list):
+        return []
+    return [tc for tc in tool_calls if isinstance(tc, dict)]

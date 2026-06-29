@@ -134,6 +134,12 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# Local secrets / run scripts (never commit API keys)
+*.local.sh
+*.local.py
+*.local.env
+run.local.sh
+
 # Environments
 .env
 .envrc

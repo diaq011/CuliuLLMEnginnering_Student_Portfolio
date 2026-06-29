@@ -47,6 +47,14 @@ const DIFFICULTY_LABELS = {
   hard: "困难",
 };
 
+const ASSISTANT_INTRO =
+  "嗨，我是你的「J人模拟器」学习规划助手 👋\n" +
+  "你不用去填复杂的表单，直接跟我说就行：\n" +
+  "• 告诉我你什么时候有空，比如「工作日晚上7点到9点有空，周末下午2点到5点」\n" +
+  "• 告诉我你要做的任务和截止时间，比如「数学卷3张，周一前；英语作文2篇，周三前」\n" +
+  "• 说一句「帮我排计划」，我就会按你的空闲时间把任务排到 DDL 之前。\n" +
+  "想从哪一件开始？";
+
 const state = {
   authToken: localStorage.getItem("auth_token") || "",
   currentUser: "",
@@ -55,7 +63,7 @@ const state = {
   selectedPlan: null,
   checkins: [],
   planner: "none",
-  activePage: "home",
+  activePage: "chat",
   planStale: localStorage.getItem("plan_stale") === "1",
   editingTaskId: "",
   profileName: localStorage.getItem("profile_name") || "",
@@ -76,6 +84,8 @@ const state = {
   weeklyAvailability: Object.fromEntries(WEEK_KEYS.map((k) => [k, []])),
   availabilityChatMessages: [],
   availabilityChatSending: false,
+  assistantMessages: loadAssistantMessages(),
+  assistantChatSending: false,
   lastTap: { taskId: "", ts: 0 },
 };
 
@@ -118,6 +128,18 @@ const ui = {
   availabilityChatForm: document.getElementById("availabilityChatForm"),
   availabilityChatInput: document.getElementById("availabilityChatInput"),
   availabilityChatSendBtn: document.getElementById("availabilityChatSendBtn"),
+  assistantChatMessages: document.getElementById("assistantChatMessages"),
+  assistantChatForm: document.getElementById("assistantChatForm"),
+  assistantChatInput: document.getElementById("assistantChatInput"),
+  assistantChatSendBtn: document.getElementById("assistantChatSendBtn"),
+  authGate: document.getElementById("authGate"),
+  authGateForm: document.getElementById("authGateForm"),
+  authGateTitle: document.getElementById("authGateTitle"),
+  gateIdentifier: document.getElementById("gateIdentifier"),
+  gatePassword: document.getElementById("gatePassword"),
+  gateLoginBtn: document.getElementById("gateLoginBtn"),
+  gateRegisterBtn: document.getElementById("gateRegisterBtn"),
+  gateStatus: document.getElementById("gateStatus"),
   accountSettings: document.getElementById("accountSettings"),
   focusSettingsPage: document.getElementById("focusSettingsPage"),
   openAvailabilitySettingsBtn: document.getElementById("openAvailabilitySettingsBtn"),
@@ -194,13 +216,32 @@ const ui = {
 
 bootstrap().catch((error) => setFeedback(`初始化失败：${error.message}`, true));
 
+ui.authGateForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await gateLogin();
+});
+ui.gateRegisterBtn.addEventListener("click", async () => {
+  await gateRegister();
+});
 ui.navItems.forEach((item) => item.addEventListener("click", () => switchPage(item.dataset.nav)));
+ui.assistantChatForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await sendAssistantMessage();
+});
+ui.assistantChatInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    sendAssistantMessage();
+  }
+});
 ui.openTaskCreateBtn.addEventListener("click", () => showTaskCreateView());
 ui.backTaskListBtn.addEventListener("click", () => showTaskListView());
-ui.homeAccountBtn.addEventListener("click", () => {
-  switchPage("settings");
-  showAccountSettings();
-});
+if (ui.homeAccountBtn) {
+  ui.homeAccountBtn.addEventListener("click", () => {
+    switchPage("settings");
+    showAccountSettings();
+  });
+}
 ui.openAvailabilitySettingsBtn.addEventListener("click", () => showAvailabilityModeSettings());
 ui.openAvailabilityAiBtn.addEventListener("click", () => showAvailabilityAiSettings());
 ui.openAvailabilityManualBtn.addEventListener("click", () => showAvailabilityManualSettings());
@@ -251,19 +292,23 @@ ui.logoutBtn.addEventListener("click", async () => {
   await logout();
 });
 
-ui.timerToggleBtn.addEventListener("click", () => openFocusOverlay(true));
-ui.timerResetBtn.addEventListener("click", () => {
-  if (state.timerHandle) clearInterval(state.timerHandle);
-  state.timerHandle = null;
-  state.timerRunning = false;
-  state.timerSeconds = 0;
-  state.focusElapsedMs = 0;
-  state.focusBlockStartAt = "";
-  state.focusSessionStartAt = "";
-  ui.timerToggleBtn.textContent = "开始";
-  renderTimer();
-  renderFocusClock();
-});
+if (ui.timerToggleBtn) {
+  ui.timerToggleBtn.addEventListener("click", () => openFocusOverlay(true));
+}
+if (ui.timerResetBtn) {
+  ui.timerResetBtn.addEventListener("click", () => {
+    if (state.timerHandle) clearInterval(state.timerHandle);
+    state.timerHandle = null;
+    state.timerRunning = false;
+    state.timerSeconds = 0;
+    state.focusElapsedMs = 0;
+    state.focusBlockStartAt = "";
+    state.focusSessionStartAt = "";
+    if (ui.timerToggleBtn) ui.timerToggleBtn.textContent = "开始";
+    renderTimer();
+    renderFocusClock();
+  });
+}
 
 ui.focusMinimizeBtn.addEventListener("click", () => minimizeFocusOverlay());
 ui.focusSettingsBtn.addEventListener("click", () => openFocusSettings());
@@ -307,7 +352,7 @@ ui.deleteTaskBtn.addEventListener("click", () => deleteTaskFromEditor());
 
 ui.taskForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!state.currentUser) return setFeedback("请先登录", true);
+  if (!hasIdentity()) return setFeedback("初始化中，请稍候重试", true);
   const title = ui.titleInput.value.trim();
   const deadline = ui.deadlineInput.value;
   const subject = ui.subjectInput.value;
@@ -372,7 +417,7 @@ ui.copyAllDaysBtn.addEventListener("click", () => {
 
 ui.availabilityForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!state.currentUser) return setFeedback("请先登录", true);
+  if (!hasIdentity()) return setFeedback("初始化中，请稍候重试", true);
   try {
     const payload = collectAvailabilityPayload();
     const result = await api("/settings/availability", {
@@ -398,7 +443,7 @@ ui.timelineCanvas.addEventListener("click", async (event) => {
 });
 
 ui.planList.addEventListener("click", async (event) => {
-  if (!state.currentUser) return;
+  if (!hasIdentity()) return;
   const menu = event.target.closest("[data-task-menu]");
   if (menu) {
     openTaskEditor(menu.dataset.taskMenu);
@@ -428,7 +473,7 @@ function renderAuthStatus() {
   ui.accountDisplayName.textContent = state.profileName || state.currentUser || "未登录";
   ui.accountUsernameText.textContent = state.currentUser ? `用户名：${state.currentUser}` : "--";
   ui.profileNameInput.value = state.profileName;
-  const disabled = !state.currentUser;
+  const disabled = !hasIdentity();
   [ui.taskForm, ui.generateBtn, ui.availabilityForm, ui.planInfoBtn].forEach((el) => {
     if (!el) return;
     if (el.tagName === "FORM") {
@@ -462,22 +507,37 @@ function clearAppData() {
   renderPlanList();
 }
 
+async function loadIdentityData() {
+  if (!hasIdentity()) return;
+  await refreshAvailability();
+  await refreshState();
+  await refreshSelectedDatePlan();
+}
+
 async function tryRestoreSession() {
   if (!state.authToken) {
     renderAuthStatus();
+    try {
+      await loadIdentityData();
+    } catch {
+      // guest data load failed (e.g. backend offline); keep defaults
+    }
     return;
   }
   try {
     const me = await api("/auth/me");
     state.currentUser = me.user?.username || "";
-    await refreshAvailability();
-    await refreshState();
-    await refreshSelectedDatePlan();
+    await loadIdentityData();
   } catch {
     state.authToken = "";
     state.currentUser = "";
     localStorage.removeItem("auth_token");
     clearAppData();
+    try {
+      await loadIdentityData();
+    } catch {
+      // ignore guest fallback load error
+    }
   }
   renderAuthStatus();
 }
@@ -547,7 +607,10 @@ async function logout() {
   localStorage.removeItem("auth_token");
   clearAppData();
   renderAuthStatus();
-  setFeedback("已退出登录");
+  resetAssistantConversation();
+  if (ui.gateIdentifier) ui.gateIdentifier.value = "";
+  if (ui.gatePassword) ui.gatePassword.value = "";
+  showAuthGate("已退出登录，请重新登录。");
 }
 
 async function bootstrap() {
@@ -557,20 +620,22 @@ async function bootstrap() {
   renderFocusClock();
   renderFocusContent();
   syncFocusSettingsInputs();
-  switchPage("home");
+  renderAssistantChat();
+  switchPage("chat");
   await tryRestoreSession();
   renderDateSwitcher();
   renderTimeline();
   renderPlanList();
-  if (!state.currentUser) {
-    setFeedback("请先登录后使用任务与计划功能。");
-  } else {
+  if (state.currentUser) {
+    hideAuthGate();
     setFeedback(`已登录：${state.currentUser}`);
+  } else {
+    showAuthGate();
   }
 }
 
 async function changeSelectedDate(deltaDays) {
-  if (!state.currentUser) return;
+  if (!hasIdentity()) return;
   state.selectedDate = shiftDate(state.selectedDate, deltaDays);
   await refreshSelectedDatePlan();
   renderDateSwitcher();
@@ -578,7 +643,7 @@ async function changeSelectedDate(deltaDays) {
 }
 
 async function generatePlanForToday() {
-  if (!state.currentUser) return setFeedback("请先登录", true);
+  if (!hasIdentity()) return setFeedback("初始化中，请稍候重试", true);
   if (ui.generateBtn.disabled) return;
   setGenerateLoading(true);
   try {
@@ -763,7 +828,7 @@ function showAvailabilityModeSettings() {
 }
 
 function showAvailabilityAiSettings() {
-  if (!state.currentUser) return setFeedback("请先登录", true);
+  if (!hasIdentity()) return setFeedback("初始化中，请稍候重试", true);
   hideAllSettingsViews();
   ui.availabilityAiSettings.hidden = false;
   if (state.availabilityChatMessages.length === 0) {
@@ -823,7 +888,7 @@ function summarizeAvailabilityForChat(availability) {
 }
 
 async function sendAvailabilityChatMessage() {
-  if (!state.currentUser) return setFeedback("请先登录", true);
+  if (!hasIdentity()) return setFeedback("初始化中，请稍候重试", true);
   if (state.availabilityChatSending) return;
   const message = ui.availabilityChatInput.value.trim();
   if (!message) return;
@@ -861,6 +926,197 @@ async function sendAvailabilityChatMessage() {
   }
 }
 
+function hasIdentity() {
+  return !!state.currentUser;
+}
+
+function showAuthGate(message = "") {
+  if (!ui.authGate) return;
+  ui.authGate.classList.remove("hidden");
+  setGateStatus(message, false);
+  if (ui.gateIdentifier) ui.gateIdentifier.focus();
+}
+
+function hideAuthGate() {
+  if (!ui.authGate) return;
+  ui.authGate.classList.add("hidden");
+}
+
+function setGateStatus(message, isError = true) {
+  if (!ui.gateStatus) return;
+  ui.gateStatus.textContent = message || "";
+  ui.gateStatus.style.color = isError ? "var(--danger)" : "#2c7a3f";
+}
+
+function setGateLoading(loading) {
+  if (ui.gateLoginBtn) ui.gateLoginBtn.disabled = loading;
+  if (ui.gateRegisterBtn) ui.gateRegisterBtn.disabled = loading;
+}
+
+function validIdentifier(value) {
+  const v = String(value || "").trim().toLowerCase();
+  const isPhone = /^1[3-9]\d{9}$/.test(v);
+  const isEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
+  return isPhone || isEmail;
+}
+
+function resetAssistantConversation() {
+  state.assistantMessages = [{ role: "assistant", content: ASSISTANT_INTRO }];
+  saveAssistantMessages();
+  renderAssistantChat();
+}
+
+async function enterAppAfterAuth() {
+  hideAuthGate();
+  switchPage("chat");
+  await loadIdentityData();
+  renderDateSwitcher();
+  renderTimeline();
+  renderPlanList();
+  renderAuthStatus();
+}
+
+async function gateLogin() {
+  const identifier = ui.gateIdentifier.value.trim().toLowerCase();
+  const password = ui.gatePassword.value;
+  if (!validIdentifier(identifier)) return setGateStatus("请输入有效的手机号或邮箱");
+  if (password.length < 6) return setGateStatus("密码至少 6 位");
+  setGateLoading(true);
+  setGateStatus("登录中…", false);
+  try {
+    const result = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ identifier, password }),
+      authOptional: true,
+    });
+    state.authToken = result.token || "";
+    state.currentUser = result.user?.username || identifier;
+    localStorage.setItem("auth_token", state.authToken);
+    ui.gatePassword.value = "";
+    await enterAppAfterAuth();
+    setFeedback(`欢迎回来：${state.currentUser}`);
+  } catch (error) {
+    setGateStatus(error.message || "登录失败");
+  } finally {
+    setGateLoading(false);
+  }
+}
+
+async function gateRegister() {
+  const identifier = ui.gateIdentifier.value.trim().toLowerCase();
+  const password = ui.gatePassword.value;
+  if (!validIdentifier(identifier)) return setGateStatus("请输入有效的手机号或邮箱");
+  if (password.length < 6) return setGateStatus("密码至少 6 位");
+  setGateLoading(true);
+  setGateStatus("正在创建账号…", false);
+  try {
+    const result = await api("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ identifier, password }),
+      authOptional: true,
+    });
+    state.authToken = result.token || "";
+    state.currentUser = result.user?.username || identifier;
+    localStorage.setItem("auth_token", state.authToken);
+    ui.gatePassword.value = "";
+    resetAssistantConversation();
+    await enterAppAfterAuth();
+    setFeedback(`注册成功，欢迎加入：${state.currentUser}`);
+  } catch (error) {
+    setGateStatus(error.message || "注册失败");
+  } finally {
+    setGateLoading(false);
+  }
+}
+
+function loadAssistantMessages() {
+  try {
+    const raw = localStorage.getItem("assistant_messages");
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (Array.isArray(parsed) && parsed.length) return parsed;
+  } catch {
+    // fall through to intro
+  }
+  return [{ role: "assistant", content: ASSISTANT_INTRO }];
+}
+
+function saveAssistantMessages() {
+  try {
+    localStorage.setItem("assistant_messages", JSON.stringify(state.assistantMessages.slice(-40)));
+  } catch {
+    // ignore quota errors
+  }
+}
+
+function renderAssistantChat() {
+  if (!ui.assistantChatMessages) return;
+  ui.assistantChatMessages.innerHTML = "";
+  state.assistantMessages.forEach((msg) => {
+    const bubble = document.createElement("div");
+    bubble.className = `chat-bubble ${msg.role === "user" ? "user" : "assistant"}`;
+    bubble.textContent = msg.content;
+    ui.assistantChatMessages.appendChild(bubble);
+  });
+  if (state.assistantChatSending) {
+    const pending = document.createElement("div");
+    pending.className = "chat-bubble assistant pending";
+    pending.textContent = "正在思考…";
+    ui.assistantChatMessages.appendChild(pending);
+  }
+  ui.assistantChatMessages.scrollTop = ui.assistantChatMessages.scrollHeight;
+}
+
+async function applyAssistantStateChange(changed) {
+  if (!changed || (!changed.tasks && !changed.availability && !changed.plan)) return;
+  try {
+    await refreshState();
+    if (changed.availability) renderAvailabilityEditor();
+    if (changed.plan) {
+      await refreshSelectedDatePlan();
+      clearPlanStale();
+    } else if (changed.tasks) {
+      markPlanStale();
+    }
+    renderDateSwitcher();
+    renderTimeline();
+    renderPlanList();
+  } catch {
+    // refresh failures shouldn't break the chat reply
+  }
+}
+
+async function sendAssistantMessage() {
+  if (state.assistantChatSending) return;
+  const message = ui.assistantChatInput.value.trim();
+  if (!message) return;
+  state.assistantMessages.push({ role: "user", content: message });
+  ui.assistantChatInput.value = "";
+  state.assistantChatSending = true;
+  ui.assistantChatSendBtn.disabled = true;
+  renderAssistantChat();
+  saveAssistantMessages();
+  try {
+    const history = state.assistantMessages
+      .slice(0, -1)
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role, content: m.content }));
+    const result = await api("/chat", {
+      method: "POST",
+      body: JSON.stringify({ message, history }),
+    });
+    const reply = (result.reply || "").trim() || "我已经处理好了。";
+    state.assistantMessages.push({ role: "assistant", content: reply });
+    await applyAssistantStateChange(result.stateChanged || {});
+  } catch (error) {
+    state.assistantMessages.push({ role: "assistant", content: `抱歉，出错了：${error.message}` });
+  } finally {
+    state.assistantChatSending = false;
+    ui.assistantChatSendBtn.disabled = false;
+    renderAssistantChat();
+    saveAssistantMessages();
+  }
+}
+
 function showSettingsAvailability() {
   showAvailabilityManualSettings();
 }
@@ -878,6 +1134,7 @@ function buildTimeOptions() {
 }
 
 function renderTimer() {
+  if (!ui.timerDisplay) return;
   ui.timerDisplay.textContent = formatDuration(state.timerSeconds);
 }
 
@@ -941,7 +1198,7 @@ function openFocusOverlay(shouldStart) {
     if (!state.focusBlockStartAt) state.focusBlockStartAt = new Date().toISOString();
     state.timerRunning = true;
     state.focusSessionStartAt = new Date().toISOString();
-    ui.timerToggleBtn.textContent = "专注中";
+    if (ui.timerToggleBtn) ui.timerToggleBtn.textContent = "专注中";
     ui.focusPauseBtn.textContent = "暂停";
   }
   ensureFocusTicker();
@@ -960,7 +1217,7 @@ function toggleFocusPause() {
     state.focusSessionStartAt = "";
     state.timerRunning = false;
     ui.focusPauseBtn.textContent = "继续";
-    ui.timerToggleBtn.textContent = "继续";
+    if (ui.timerToggleBtn) ui.timerToggleBtn.textContent = "继续";
     renderFocusClock();
     stopFocusTickerIfIdle();
     return;
@@ -969,7 +1226,7 @@ function toggleFocusPause() {
   if (!state.focusBlockStartAt) state.focusBlockStartAt = new Date().toISOString();
   state.focusSessionStartAt = new Date().toISOString();
   ui.focusPauseBtn.textContent = "暂停";
-  ui.timerToggleBtn.textContent = "专注中";
+  if (ui.timerToggleBtn) ui.timerToggleBtn.textContent = "专注中";
   ensureFocusTicker();
   renderFocusClock();
 }
@@ -1019,7 +1276,7 @@ function endFocusSession() {
   state.focusElapsedMs = 0;
   state.focusBlockStartAt = "";
   state.focusSessionStartAt = "";
-  ui.timerToggleBtn.textContent = "开始";
+  if (ui.timerToggleBtn) ui.timerToggleBtn.textContent = "开始";
   ui.focusPauseBtn.textContent = "暂停";
   ui.focusOverlay.classList.add("hidden");
   ui.focusBubble.classList.add("hidden");
@@ -1071,14 +1328,14 @@ function setGenerateLoading(loading) {
 }
 
 async function refreshAvailability() {
-  if (!state.currentUser) return;
+  if (!hasIdentity()) return;
   const data = await api("/settings/availability");
   state.weeklyAvailability = data.weeklyAvailability || state.weeklyAvailability;
   renderAvailabilityEditor();
 }
 
 async function refreshState() {
-  if (!state.currentUser) return;
+  if (!hasIdentity()) return;
   const data = await api("/state");
   state.tasks = data.tasks || [];
   state.todayPlan = data.todayPlan || null;
@@ -1628,6 +1885,7 @@ async function api(path, options = {}) {
     localStorage.removeItem("auth_token");
     clearAppData();
     renderAuthStatus();
+    showAuthGate("登录已失效，请重新登录");
     throw new Error("登录已失效，请重新登录");
   }
   if (!response.ok) throw new Error(data.message || `HTTP ${response.status}`);
